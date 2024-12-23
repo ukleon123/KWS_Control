@@ -14,29 +14,23 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.In
 	// main server와 통신하기 위한 http 서버
 	// gin.DefaultWriter = io.Discard
 
-	http.HandleFunc("/getStatus",func(w http.ResponseWriter, r *http.Request){
-		// body, err := io.ReadAll(b.Body)
-		// if err != nil{
-		// 	log.Println(err)
-		// }
-
-		// defer b.Body.Close()
-		//body.vmStatus
-		//body.uuid
+	http.HandleFunc("Get /getStatus",func(w http.ResponseWriter, r *http.Request){
+ 
 		if r.Method != http.MethodGet {
 			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 			return
 		}
-		workerControl:= WorkerCont.TaskControl{
+		workerControl:= &WorkerCont.TaskControl_GetStatus{
 			ResultChann: make(chan WorkerCont.TaskExecutionResult),
-			Arguments: []interface{}{contextStruct},
 		}
+		resultChannel:= workerControl.ResultChann
+		defer close(resultChannel)
+		workerControl.TaskUnparsor(r)
+		
 		newTask:=&WorkerCont.Task{
 			FunctionName: WorkerCont.GetStatus,	
-			TaskSpecific: &workerControl,
+			TaskSpecific: workerControl,
 		}
-		resultChannel:= newTask.TaskSpecific.ChanGetter()
-		defer close(resultChannel)
 		
 		taskPool.WorkerAllocate(newTask)
 		result:= <-resultChannel
@@ -44,11 +38,29 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.In
 		encoder.Encode(result)
 	})
 
-	http.HandleFunc("GET /CreateVM",func(w http.ResponseWriter, b *http.Request){
-		taskPool.WorkerAllocate(&WorkerCont.Task{ 
-			FunctionName: WorkerCont.CreateV,
+	http.HandleFunc("POST /CreateVM",func(w http.ResponseWriter, r *http.Request){
+		if r.Method != http.MethodGet {
+			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+			return
+		}
+		workerControl:= &WorkerCont.TaskControl_CreateVM{
+			ResultChann: make(chan WorkerCont.TaskExecutionResult),
+		}
+		resultChannel:= workerControl.ResultChann
+		defer close(resultChannel)
+		workerControl.TaskUnparsor(r)
+		
+		newTask:=&WorkerCont.Task{
+			FunctionName: WorkerCont.CreateV,	
+			TaskSpecific: workerControl,
+		}
+		
+		taskPool.WorkerAllocate(newTask)
+		result:= <-resultChannel
+		encoder := json.NewEncoder(w)
+		encoder.Encode(result)
 	})
-	})
+	
 	http.HandleFunc("GET /DeleteVM",func(w http.ResponseWriter, b *http.Request){
 		taskPool.WorkerAllocate(&WorkerCont.Task{ 
 			FunctionName: WorkerCont.DeleteV,

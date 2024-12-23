@@ -3,10 +3,7 @@ package WorkerCont
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
-
-	vms "github.com/easy-cloud-Knet/KWS_Control/vm"
 )
 
 //각각의 worker노드와 통신하기 위한 클라이언트 서버
@@ -24,61 +21,6 @@ const(
 	DeleteV
 	GetStatus
 )
-
-
-
-type Task struct{
-	FunctionName functionName 
-	TaskSpecific TaskJustifier
-}
-
-type TaskControl struct{
-	Arguments []interface{}
-	ResultChann chan TaskExecutionResult
-}
-
-type TaskExecutionResult struct{
-	IsSuccess bool
-	InfraContext vms.InfraContext 
-	InVMContext vms.VMInfo 
-}
-
-
-
-type TaskJustifier interface{
-	ChanGetter() chan TaskExecutionResult
-	ChanSetter()
-	ArgumentsGetter() []interface{}
-	
-}
-
-type TaskWorker struct{
-	taskLenMu sync.Mutex
-	tasksLength int
-	workLoads  chan *Task
-	workerNum int
-}
-
-type TaskHandler struct{
-	TaskHandlersList []*TaskWorker
-	workingIndex int
-}
-
-func (t *TaskControl) ChanGetter() chan TaskExecutionResult{
-	if t.ResultChann==nil{
-		t.ChanSetter()
-	}
-	return t.ResultChann	
-}
-func (t *TaskControl) ChanSetter(){
-	vmChan :=make(chan TaskExecutionResult)
-	t.ResultChann=vmChan
-}
-func (t *TaskControl) ArgumentsGetter()[]interface{}{
-	fmt.Println("errorrrrrrrr")
-	return t.Arguments
-}
-
 
 
 func InitWorkers(pool *TaskHandler){

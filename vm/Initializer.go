@@ -10,10 +10,15 @@ import (
 
 
 
-func InitializeDevices(InfraCon *InfraContext) {
-
+func InitializeDevices() InfraContext{
+    initialContext:= InfraContext{
+		Computers: []Computer{},
+		VMPoolUnallocated: []*VM{},
+		VMPoolAllocated:[]*VM{},
+		VMPool:map[UUID]*VM{},
+	}
 	// config 파일이나 데이터베이스에서 읽어와야 함.
-	//추후에 테라폼 같은 프로젝트 사용할 수도? 
+	// 현재 연결되어 있는 컴퓨터들의 간단한 정보,
 
     COM1 := Computer{
         Name:        "worker1",
@@ -28,11 +33,13 @@ func InitializeDevices(InfraCon *InfraContext) {
 
 
 
-    InfraCon.Computers = append(InfraCon.Computers,COM1,  COM2)
+    initialContext.Computers = append(initialContext.Computers,COM1,  COM2)
     fmt.Println("hellot1")
-    InfraCon.UpdateList()
+    initialContext.UpdateList()
     fmt.Println("hellot2")
 
-	go HeartBeatSensor(InfraCon.Computers)
+    return initialContext
+	// go HeartBeatSensor(InfraCon.Computers)
+    // ping으로 잘 살아있는지 확인하는 놈
 
 }

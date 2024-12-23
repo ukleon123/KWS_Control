@@ -16,11 +16,22 @@ type InfraContext struct{
      VMPoolAllocated []*VM
      VMPool map[UUID]*VM
 }
+//모든 컴퓨터, vm에 대한 정보를 담고 있음.
+// json이나 yaml에 지속적으로 업데이트해서 재부팅시에도 유지하는 것 필수
 
 type InfraManage interface{
     UpdateList()
 }
 
+
+type VM struct {
+    VMInfo VMInfo `json:"vmInfo"`
+    IsAlive     bool    `json:"isAlive"`
+    IsAllocated bool    `json:"isAllocated"`
+    IsLocatedAt Computer `json:"isLocatedAt"`
+}
+
+//VM 내부의 상세 정보 표시
 type VMInfo struct{
     State libvirt.DomainState `json:"state"`
     MaxMem uint64 `json:"maxmem"`
@@ -32,13 +43,6 @@ type VMInfo struct{
 }
 
 
-type VM struct {
-    VMInfo VMInfo `json:"vmInfo"`
-    IsAlive     bool    `json:"isAlive"`
-    IsAllocated bool    `json:"isAllocated"`
-    IsLocatedAt Computer `json:"isLocatedAt"`
-}
-
 type Computer struct {
     Name      string `json:"name"`
     Allocated []VM  `json:"allocated"`
@@ -47,24 +51,4 @@ type Computer struct {
     IsAlive   bool  `json:"isAlive"`
 }
 
-// type machines interface{
-//     CheckRunning()
-//     GetStatus()
-// }
-
-
-// type apiServer struct{
-//     OutboundPort int `yaml: outboutPort`
-//     TotalWorker int `yaml:totalWorker`
-//     WorkLoadNum int `yaml:workLoadNum`
-// }
-
-// type workerInfo struct{
-//     Name string `yaml:name`
-//     Mac string  `yaml: mac`
-//     port int `yaml:port`
-// }
-
-// type WorkerInfos []workerInfo
-// yaml파일을 읽어와서 부팅함.
-
+ 

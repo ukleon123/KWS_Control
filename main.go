@@ -13,19 +13,14 @@ import (
 
 func main(){
 
-	contextStruct:= vms.InfraContext{
-		Computers: []vms.Computer{},
-		VMPoolUnallocated: []*vms.VM{},
-		VMPoolAllocated:[]*vms.VM{},
-		VMPool:map[vms.UUID]*vms.VM{},
-		}
+
 	
 	fmt.Println("hellot")
 	
 
 	var TaskHandlersPool WorkerConn.TaskHandler
 	WorkerConn.InitWorkers(&TaskHandlersPool,) 
-	vms.InitializeDevices(&contextStruct)
+	contextStruct:= vms.InitializeDevices()
 	go api.Server(8080,&TaskHandlersPool, &contextStruct)
 	WorkerConn.PsudoRequestSender(&TaskHandlersPool)
 
