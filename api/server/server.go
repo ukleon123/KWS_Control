@@ -9,79 +9,77 @@ import (
 	vms "github.com/easy-cloud-Knet/KWS_Control/vm"
 )
 
-
-func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.InfraContext ){
+func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.InfraContext) error {
 	// main server와 통신하기 위한 http 서버
 	// gin.DefaultWriter = io.Discard
 
-	http.HandleFunc("Get /getStatus",func(w http.ResponseWriter, r *http.Request){
- 
+	http.HandleFunc("Get /getStatus", func(w http.ResponseWriter, r *http.Request) {
+
 		if r.Method != http.MethodGet {
 			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 			return
 		}
-		workerControl:= &WorkerCont.TaskControl_GetStatus{
-			ResultChann: make(chan WorkerCont.TaskExecutionResult),
+		workerControl := &WorkerCont.TaskControlGetStatus{
+			ResultChan: make(chan WorkerCont.TaskExecutionResult),
 		}
-		resultChannel:= workerControl.ResultChann
+		resultChannel := workerControl.ResultChan
 		defer close(resultChannel)
 		workerControl.TaskUnparsor(r)
-		
-		newTask:=&WorkerCont.Task{
-			FunctionName: WorkerCont.GetStatus,	
+
+		newTask := &WorkerCont.Task{
+			FunctionName: WorkerCont.GetStatus,
 			TaskSpecific: workerControl,
 		}
-		
+
 		taskPool.WorkerAllocate(newTask)
-		result:= <-resultChannel
+		result := <-resultChannel
 		encoder := json.NewEncoder(w)
 		encoder.Encode(result)
 	})
 
-	http.HandleFunc("POST /CreateVM",func(w http.ResponseWriter, r *http.Request){
+	http.HandleFunc("POST /CreateVM", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 			return
 		}
-		workerControl:= &WorkerCont.TaskControl_CreateVM{
+		workerControl := &WorkerCont.TaskControlCreateVM{
 			ResultChann: make(chan WorkerCont.TaskExecutionResult),
 		}
-		resultChannel:= workerControl.ResultChann
+		resultChannel := workerControl.ResultChann
 		defer close(resultChannel)
 		workerControl.TaskUnparsor(r)
-		
-		newTask:=&WorkerCont.Task{
-			FunctionName: WorkerCont.CreateV,	
+
+		newTask := &WorkerCont.Task{
+			FunctionName: WorkerCont.CreateV,
 			TaskSpecific: workerControl,
 		}
-		
+
 		taskPool.WorkerAllocate(newTask)
-		result:= <-resultChannel
+		result := <-resultChannel
 		encoder := json.NewEncoder(w)
 		encoder.Encode(result)
 	})
-	
-	http.HandleFunc("GET /DeleteVM",func(w http.ResponseWriter, b *http.Request){
-		taskPool.WorkerAllocate(&WorkerCont.Task{ 
+
+	http.HandleFunc("GET /DeleteVM", func(w http.ResponseWriter, b *http.Request) {
+		taskPool.WorkerAllocate(&WorkerCont.Task{
 			FunctionName: WorkerCont.DeleteV,
-
 		})
 	})
-	http.HandleFunc("GET /ConnectVM",func(w http.ResponseWriter, b *http.Request){
-		taskPool.WorkerAllocate(&WorkerCont.Task{ 
+	http.HandleFunc("GET /ConnectVM", func(w http.ResponseWriter, b *http.Request) {
+		taskPool.WorkerAllocate(&WorkerCont.Task{
 			FunctionName: WorkerCont.ConnectV,
-
 		})
 	})
-	http.HandleFunc("GET /CheckVMHealth", func(w http.ResponseWriter, b *http.Request){
-		taskPool.WorkerAllocate(&WorkerCont.Task{ 
+	http.HandleFunc("GET /CheckVMHealth", func(w http.ResponseWriter, b *http.Request) {
+		taskPool.WorkerAllocate(&WorkerCont.Task{
 			FunctionName: WorkerCont.UpdateStat,
 		})
 	})
 
+	err := http.ListenAndServe(":"+strconv.Itoa(portNum), nil)
+	if err != nil {
+		return err
+	}
 
-	http.ListenAndServe(":"+strconv.Itoa(portNum), nil)
-
-
-
+	return nil
 }

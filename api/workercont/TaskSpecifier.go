@@ -7,83 +7,73 @@ import (
 
 	vms "github.com/easy-cloud-Knet/KWS_Control/vm"
 )
-type GetStatus_Param struct{
+
+type GetStatusParam struct {
 	UUID string `json:"UUID"`
 }
-type CreateVM_Param struct{
+
+type CreateVMParam struct {
 	UUID string `json:"UUID"`
-	RAM int `json:"RAM"`
-	CPU int `json:"CPU"`
+	RAM  int    `json:"RAM"`
+	CPU  int    `json:"CPU"`
 }
+
 //parameters for each functions
 
-
-type Task struct{
-	FunctionName functionName 
+type Task struct {
+	FunctionName functionName
 	TaskSpecific TaskJustifier
 }
-type TaskWorker struct{
-	taskLenMu sync.Mutex
+type TaskWorker struct {
+	taskLenMu   sync.Mutex
 	tasksLength int
-	workLoads  chan *Task
-	workerNum int
+	workLoads   chan *Task
+	workerNum   int
 }
 
-type TaskHandler struct{
+type TaskHandler struct {
 	TaskHandlersList []*TaskWorker
-	workingIndex int
-}//테스크 임베딩, 필드 추가 필요
+	workingIndex     int
+} //테스크 임베딩, 필드 추가 필요
 
-
-type TaskControl_CreateVM struct{
+type TaskControlCreateVM struct {
 	ResultChann chan TaskExecutionResult
-	UUID vms.UUID
-	RAM int
-	CPU int
+	UUID        vms.UUID
+	RAM         int
+	CPU         int
 	//추가 필요
 }
-type TaskControl_GetStatus struct{
-	ResultChann chan TaskExecutionResult
-	UUID vms.UUID
+
+type TaskControlGetStatus struct {
+	ResultChan chan TaskExecutionResult
+	UUID       vms.UUID
 }
 
-
-
-type TaskJustifier interface{
+type TaskJustifier interface {
 	TaskUnparsor(r *http.Request) error
 }
 
 //functions for each structures, needed for interface
-func (t *TaskControl_CreateVM) TaskUnparsor(r *http.Request) error{
-	var param CreateVM_Param
-	if err:= json.NewDecoder(r.Body).Decode(&param); err!=nil{
+func (t *TaskControlCreateVM) TaskUnparsor(r *http.Request) error {
+	var param CreateVMParam
+	if err := json.NewDecoder(r.Body).Decode(&param); err != nil {
 		return err
 	}
-	t.RAM= param.RAM
-	t.CPU= param.CPU
+	t.RAM = param.RAM
+	t.CPU = param.CPU
 	return nil
 }
 
-func (t *TaskControl_GetStatus) TaskUnparsor(r *http.Request) error{
-	var param GetStatus_Param
-	if err := json.NewDecoder(r.Body).Decode(&param); 
-	err != nil {
+func (t *TaskControlGetStatus) TaskUnparsor(r *http.Request) error {
+	var param GetStatusParam
+	if err := json.NewDecoder(r.Body).Decode(&param); err != nil {
 		//에러 정의 필요
 		return err
 	}
 	return nil
 }
 
-
-
-
-type TaskExecutionResult struct{
-	IsSuccess bool
-	InVMContext vms.VMInfo 
+type TaskExecutionResult struct {
+	IsSuccess   bool
+	InVMContext vms.VMInfo
 }
-
-
-
-
-
-

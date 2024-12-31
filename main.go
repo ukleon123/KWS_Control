@@ -9,20 +9,19 @@ import (
 	vms "github.com/easy-cloud-Knet/KWS_Control/vm"
 )
 
-
-
-func main(){
-
-
-	
+func main() {
 	fmt.Println("hellot")
-	
 
 	var TaskHandlersPool WorkerConn.TaskHandler
-	WorkerConn.InitWorkers(&TaskHandlersPool,) 
-	contextStruct:= vms.InitializeDevices()
-	go api.Server(8080,&TaskHandlersPool, &contextStruct)
-	WorkerConn.PsudoRequestSender(&TaskHandlersPool)
+	WorkerConn.InitWorkers(&TaskHandlersPool)
+	contextStruct := vms.InitializeDevices()
+	go func() {
+		err := api.Server(8080, &TaskHandlersPool, &contextStruct)
+		if err != nil {
+			panic(err)
+		}
+	}()
+	WorkerConn.PseudoRequestSender(&TaskHandlersPool)
 
 	select {}
 }

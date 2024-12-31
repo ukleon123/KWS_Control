@@ -8,54 +8,53 @@ import (
 
 //각각의 worker노드와 통신하기 위한 클라이언트 서버
 type functionName int32
-const NUM_OF_TASK_HANDLER=5
-const NUM_OF_ALL_WORKLOAD=10
 
+const NumOfTaskHandler = 5
+const NumOfAllWorkload = 10
 
-
-const(
-	InitWorker functionName = iota +1
-	UpdateStat 
+const (
+	InitWorker functionName = iota + 1
+	UpdateStat
 	CreateV
 	ConnectV
 	DeleteV
 	GetStatus
 )
 
-
-func InitWorkers(pool *TaskHandler){
+func InitWorkers(pool *TaskHandler) {
 	//pool *TaskHandler as args
-	pool.TaskHandlersList =make([]*TaskWorker, NUM_OF_TASK_HANDLER)
-	pool.workingIndex=0
+	pool.TaskHandlersList = make([]*TaskWorker, NumOfTaskHandler)
+	pool.workingIndex = 0
 	// pool.TaskPool=make([]*Task,10)
-	
-	for i :=0;i< NUM_OF_TASK_HANDLER; i++{
-		pool.TaskHandlersList[i]= &TaskWorker{
-			tasksLength:0,
-			workLoads: make(chan *Task,NUM_OF_ALL_WORKLOAD),
-			workerNum: i,
+
+	for i := 0; i < NumOfTaskHandler; i++ {
+		pool.TaskHandlersList[i] = &TaskWorker{
+			tasksLength: 0,
+			workLoads:   make(chan *Task, NumOfAllWorkload),
+			workerNum:   i,
 		}
 		go pool.TaskHandlersList[i].StartWorking()
 
 	}
 }
 
-func (t*TaskWorker) StartWorking(){
-	for{
-		ctx:= context.Background()
-		select  {
-			case work,ok:=<-t.workLoads:{
-				if !ok{
+func (t *TaskWorker) StartWorking() {
+	for {
+		ctx := context.Background()
+		select {
+		case work, ok := <-t.workLoads:
+			{
+				if !ok {
 					fmt.Println("channel closed")
-					return;
-				}else{
-					switch work.FunctionName{
+					return
+				} else {
+					switch work.FunctionName {
 					case CreateV:
 						t.CreateVMTest(ctx)
 						t.tasksLength--
 					case UpdateStat:
 						t.UpdateStatusTest(ctx)
-						t.tasksLength--	
+						t.tasksLength--
 					case ConnectV:
 						t.ConnectVMTest(ctx)
 						t.tasksLength--
@@ -72,31 +71,26 @@ func (t*TaskWorker) StartWorking(){
 			}
 		default:
 			// fmt.Println("work Done, waiting")
-			time.Sleep(time.Microsecond*300)
+			time.Sleep(time.Microsecond * 300)
 		}
 	}
-	}
-	
+}
 
-func (t *TaskHandler)WorkerAllocate(task *Task) {
+func (t *TaskHandler) WorkerAllocate(task *Task) {
 	for {
-		workerIndex := t.workingIndex % NUM_OF_TASK_HANDLER
+		workerIndex := t.workingIndex % NumOfTaskHandler
 		worker := t.TaskHandlersList[workerIndex]
-			
+
 		worker.taskLenMu.Lock()
 		if worker.tasksLength < 9 {
 			worker.workLoads <- task
 			worker.tasksLength++
 			fmt.Printf("Allocated task to worker %d. Current tasks: %d\n", workerIndex, worker.tasksLength)
 			worker.taskLenMu.Unlock()
-			t.workingIndex = (t.workingIndex + 1) % NUM_OF_TASK_HANDLER
+			t.workingIndex = (t.workingIndex + 1) % NumOfTaskHandler
 			return
 		}
 		worker.taskLenMu.Unlock()
-		t.workingIndex = (t.workingIndex + 1) % NUM_OF_TASK_HANDLER
+		t.workingIndex = (t.workingIndex + 1) % NumOfTaskHandler
 	}
 }
-
-
-
-
