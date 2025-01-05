@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//각각의 worker노드와 통신하기 위한 클라이언트 서버
+// 각각의 worker노드와 통신하기 위한 클라이언트 서버
 type functionName int32
 
 const NumOfTaskHandler = 5

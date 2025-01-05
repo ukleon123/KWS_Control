@@ -10,11 +10,12 @@ import (
 )
 
 func (c *Computer) GetVMList(VMList map[UUID]*VM) {
-	if !strings.HasPrefix(c.IP, "http://") && !strings.HasPrefix(c.IP, "https://") {
-		c.IP = "http://" + c.IP
+	baseUrl := c.IP
+	if !strings.HasPrefix(baseUrl, "http://") && !strings.HasPrefix(baseUrl, "https://") {
+		baseUrl = "http://" + baseUrl
 	}
 
-	resp, err := http.Get(c.IP + ":8080" + "/getStatus")
+	resp, err := http.Get(baseUrl + ":8080" + "/getStatus")
 	if err != nil {
 		panic(err)
 	}

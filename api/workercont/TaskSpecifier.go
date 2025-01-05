@@ -53,7 +53,7 @@ type TaskJustifier interface {
 	TaskUnparsor(r *http.Request) error
 }
 
-//functions for each structures, needed for interface
+// functions for each structures, needed for interface
 func (t *TaskControlCreateVM) TaskUnparsor(r *http.Request) error {
 	var param CreateVMParam
 	if err := json.NewDecoder(r.Body).Decode(&param); err != nil {
