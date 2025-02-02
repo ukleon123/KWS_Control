@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 
 	//"io"
 	"net/http"
@@ -45,34 +46,24 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 			return
 		}
 
-		// TaskControlCreateVM 생성 및 요청 파싱
-		workerControl := &WorkerCont.TaskControlCreateVM{
-			ResultChan: make(chan string),
-			Vms:        contextStruct,
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+			return
 		}
-		resultChannel := workerControl.ResultChan
-		defer close(resultChannel)
+		var param WorkerCont.CreateVMParam
+		err = json.Unmarshal(b, &param)
 
-		// JSON 파싱 및 에러 처리
-		if err := workerControl.TaskUnparsor(r); err != nil {
-			http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
-			fmt.Printf("Error in TaskUnparsor: %v\n", err) // 필요 시 유지
+		task := WorkerCont.NewCreateVMTask(nil, param)
+		resp, err := task.Await()
+		if err != nil {
+			http.Error(w, "Failed to create VM", http.StatusInternalServerError)
 			return
 		}
 
-		// Task 생성 및 작업 할당
-		newTask := &WorkerCont.Task{
-			FunctionName: WorkerCont.CreateV,
-			TaskSpecific: workerControl,
-		}
-		taskPool.WorkerAllocate(newTask)
-
-		// 결과 처리 및 응답
-		result := <-resultChannel
 		encoder := json.NewEncoder(w)
-		if err := encoder.Encode(result); err != nil {
+		if err = encoder.Encode(resp); err != nil {
 			http.Error(w, "Failed to encode result", http.StatusInternalServerError)
-			return
 		}
 	})
 

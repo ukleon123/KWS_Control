@@ -51,6 +51,7 @@ type Task struct {
 	FunctionName functionName
 	TaskSpecific TaskJustifier
 }
+
 type TaskWorker struct {
 	taskLenMu   sync.Mutex
 	tasksLength int
