@@ -1,6 +1,12 @@
 # 빌드 및 실행 단계
 FROM golang:1.20
 
+# 필수 패키지 설치 (libvirt 개발 패키지 포함)
+RUN apt-get update && apt-get install -y \
+    libvirt-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
 # 작업 디렉토리 설정
 WORKDIR /app
 
