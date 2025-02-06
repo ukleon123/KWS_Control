@@ -3,12 +3,12 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-
 	//"io"
 	"net/http"
 	"strconv"
 
 	WorkerCont "github.com/easy-cloud-Knet/KWS_Control/api/workercont"
+	"github.com/easy-cloud-Knet/KWS_Control/util"
 	vms "github.com/easy-cloud-Knet/KWS_Control/vm"
 )
 
@@ -45,34 +45,22 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 			return
 		}
 
-		// TaskControlCreateVM 생성 및 요청 파싱
-		workerControl := &WorkerCont.TaskControlCreateVM{
-			ResultChan: make(chan string),
-			Vms:        contextStruct,
-		}
-		resultChannel := workerControl.ResultChan
-		defer close(resultChannel)
-
-		// JSON 파싱 및 에러 처리
-		if err := workerControl.TaskUnparsor(r); err != nil {
-			http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
-			fmt.Printf("Error in TaskUnparsor: %v\n", err) // 필요 시 유지
+		param, err := util.UnmarshalBodyAndClose[WorkerCont.CreateVMParam](r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read or parse JSON", http.StatusBadRequest)
 			return
 		}
 
-		// Task 생성 및 작업 할당
-		newTask := &WorkerCont.Task{
-			FunctionName: WorkerCont.CreateV,
-			TaskSpecific: workerControl,
+		task := WorkerCont.NewCreateVMTask(&vms.Core{IP: "127.0.0.1", Port: 8080}, param) // TODO: core assignment
+		resp, err := task.Await()
+		if err != nil {
+			http.Error(w, "Failed to create VM", http.StatusInternalServerError)
+			return
 		}
-		taskPool.WorkerAllocate(newTask)
 
-		// 결과 처리 및 응답
-		result := <-resultChannel
 		encoder := json.NewEncoder(w)
-		if err := encoder.Encode(result); err != nil {
+		if err = encoder.Encode(resp); err != nil {
 			http.Error(w, "Failed to encode result", http.StatusInternalServerError)
-			return
 		}
 	})
 
