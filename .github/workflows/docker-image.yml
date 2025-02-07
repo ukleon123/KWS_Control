@@ -54,6 +54,6 @@ jobs:
           echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker pull $IMAGE
           echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker stop KWS_Control || true
           echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker rm KWS_Control || true
-          echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker run -d --name KWS_Control -p 25119:8000 $IMAGE
+          echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker run -d --name KWS_Control -p 25119:8080 $IMAGE
           echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker system prune -af
         EOF
