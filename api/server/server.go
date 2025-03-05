@@ -3,6 +3,8 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+
+	//"fmt"
 	//"io"
 	"net/http"
 	"strconv"
@@ -41,58 +43,86 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 
 	http.HandleFunc("/CreateVM", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost { // POST로 요청 제한
-			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+			http.Error(w, "Control : Invalid request method", http.StatusMethodNotAllowed)
 			return
 		}
 
 		param, err := util.UnmarshalBodyAndClose[WorkerCont.CreateVMParam](r.Body)
 		if err != nil {
-			http.Error(w, "Failed to read or parse JSON", http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest) // 400 오류
+			println("Control : Failed to read or parse JSON")
+			json.NewEncoder(w).Encode(WorkerCont.ControlError{
+				Message: "Failed to create VM",
+				Errors:  "Control : Failed to read or parse JSON",
+			})
+			return
+		}
+		excludeFields := map[string]bool{"Network": true}
+		err = WorkerCont.ValidateStruct(param, excludeFields)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			println("Control : Invalid parameters provided")
+			json.NewEncoder(w).Encode(WorkerCont.ControlError{
+				Message: "Failed to create VM",
+				Errors:  "Control : Invalid parameters provided",
+			})
+			return
+		}
+		param.Network.Ips = []string{"14.5.51.8", "12.5.28.8"}
+		param.Network.NetType = 0
+		task := WorkerCont.NewCreateVMTask(&vms.Core{IP: "223.194.20.119", Port: 28779}, param) // TODO: core assignment
+		resp, err := task.Await()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			println("Core : Forced error response instead of core response")
+			json.NewEncoder(w).Encode(WorkerCont.ControlError{
+				Message: "Failed to create VM",
+				Errors:  err.Error(),
+			})
 			return
 		}
 
-		task := WorkerCont.NewCreateVMTask(&vms.Core{IP: "127.0.0.1", Port: 8080}, param) // TODO: core assignment
-		resp, err := task.Await()
-		if err != nil {
-			http.Error(w, "Failed to create VM", http.StatusInternalServerError)
+		if resp.Errors.ErrorType != "" {
+			println("Core : Forced error response instead of core response")
+			WorkerCont.Errorhandler(resp)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(WorkerCont.ControlError{
+				Message: "Failed to create VM",
+				//Errors:  "Core : Forced error response instead of core response(%s)", resp,
+			})
 			return
 		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(WorkerCont.ControlError{
+			Message: "Success to create VM",
+			Errors:  "",
+		})
+	})
+
+	http.HandleFunc("/DeleteVM", func(w http.ResponseWriter, r *http.Request) {
+		param, err := util.UnmarshalBodyAndClose[WorkerCont.DeletevmParam](r.Body)
+		fmt.Printf("%v\n", param)
+		if err != nil {
+			http.Error(w, "Failed to read or parse JSON", http.StatusBadRequest)
+			return
+		}
+		task := WorkerCont.NewDeleteVMTask(&vms.Core{IP: "223.194.20.119", Port: 28779}, param)
+		resp, err := task.Await()
+		if err != nil {
+			http.Error(w, "Failed to Delete VM", http.StatusInternalServerError)
+			return
+		}
+		//task.errorhandler()
 
 		encoder := json.NewEncoder(w)
 		if err = encoder.Encode(resp); err != nil {
 			http.Error(w, "Failed to encode result", http.StatusInternalServerError)
-		}
-	})
-
-	http.HandleFunc("/DeleteVM", func(w http.ResponseWriter, r *http.Request) {
-		workerControl := &WorkerCont.TaskControlDeleteVM{
-			ResultChan: make(chan string),
-			//Vms:        contextStruct,
-		}
-		resultChannel := workerControl.ResultChan
-		defer close(resultChannel)
-
-		// JSON 파싱 및 에러 처리
-		if err := workerControl.TaskUnparsor(r); err != nil {
-			http.Error(w, "Failed to parse JSON", http.StatusBadRequest)
-			fmt.Printf("Error in TaskUnparsor: %v\n", err) // 필요 시 유지
 			return
 		}
 
-		// Task 생성 및 작업 할당
-		newTask := &WorkerCont.Task{
-			FunctionName: WorkerCont.DeleteV,
-			TaskSpecific: workerControl,
-		}
-		taskPool.WorkerAllocate(newTask)
-
-		// 결과 처리 및 응답
-		result := <-resultChannel
-		encoder := json.NewEncoder(w)
-		if err := encoder.Encode(result); err != nil {
-			http.Error(w, "Failed to encode result", http.StatusInternalServerError)
-			return
-		}
 	})
 	http.HandleFunc("GET /ConnectVM", func(w http.ResponseWriter, b *http.Request) {
 		taskPool.WorkerAllocate(&WorkerCont.Task{
@@ -112,10 +142,3 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 
 	return nil
 }
-
-/*
-회의 해봐야 하는 내용들
-1. VM 생성 완료 했을 때 벡에다가 리턴해야 하는게 뭔지?
-2. Core 컴퓨터가 실행되면 Control에 Core 정보 보내줘야함.
-
-*/
