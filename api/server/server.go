@@ -57,6 +57,26 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 			})
 			return
 		}
+		for i := range param.Users {
+			privateKey, publicKey, err := WorkerCont.SshKeygen()
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				println("Control : ssh err")
+				json.NewEncoder(w).Encode(WorkerCont.ControlError{
+					Message: "Failed to create VM",
+					Errors:  "Control : ssh err",
+				})
+				return
+			}
+			if len(param.Users[i].Ssh) == 0 {
+				param.Users[i].Ssh = make([]string, 1)
+				param.Users[i].Ssh[0] = publicKey
+			} else {
+				param.Users[i].Ssh = append(param.Users[i].Ssh, publicKey)
+			}
+			WorkerCont.SshPrivateStore(param.UUID+"_"+strconv.Itoa(i), privateKey)
+		}
+		param.Network.Ips = []string{"10.5.15.99", "10.15.5.4"}
 		excludeFields := map[string]bool{"Network": true}
 		err = WorkerCont.ValidateStruct(param, excludeFields)
 		if err != nil {
@@ -68,8 +88,6 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 			})
 			return
 		}
-		param.Network.Ips = []string{"14.5.51.8", "12.5.28.8"}
-		param.Network.NetType = 0
 		task := WorkerCont.NewCreateVMTask(&vms.Core{IP: "223.194.20.119", Port: 28779}, param) // TODO: core assignment
 		resp, err := task.Await()
 		if err != nil {

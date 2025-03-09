@@ -26,14 +26,15 @@ type CreateVMParam struct {
 	UUID    string     `json:"uuid"`
 	OS      string     `json:"os"`
 	HWInfo  HWInfo     `json:"HWInfo"`
-	Network Network
-	Method  uint `json:"method"`
+	Network Network    `json:"network"`
+	Method  uint       `json:"method"`
 }
 
 type UserInfo struct {
 	UserName     string `json:"name"`
 	UserGroup    string `json:"groups"`
 	UserPassword string `json:"passWord"`
+	Ssh          []string
 }
 
 type HWInfo struct {
@@ -42,8 +43,8 @@ type HWInfo struct {
 }
 
 type Network struct {
-	Ips     []string
-	NetType int
+	Ips     []string `json:"ips"`
+	NetType int      `json:"netType"`
 }
 
 func ValidateStruct(s interface{}, excludeFields map[string]bool) error {
