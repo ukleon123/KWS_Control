@@ -3,11 +3,14 @@ package WorkerCont
 import (
 	"bytes"
 	"encoding/json"
-	vms "github.com/easy-cloud-Knet/KWS_Control/vm"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
+
+	vms "github.com/easy-cloud-Knet/KWS_Control/vm"
 )
 
 type CoreRequestTask[P any, R any] struct {
@@ -20,17 +23,32 @@ type CoreRequestTask[P any, R any] struct {
 func (t *CoreRequestTask[P, R]) Await() (body R, err error) {
 	jsonData, err := json.Marshal(t.Request)
 	if err != nil {
+		println("Struct encoding error")
 		return
 	}
-
+	//fmt.Println(t.Request)
 	requestUrl := url.URL{
 		Scheme: "http",
 		Host:   t.Core.IP + ":" + strconv.Itoa(t.Core.Port),
 		Path:   t.Endpoint,
 	}
-
-	resp, err := http.Post(requestUrl.String(), "application/json", bytes.NewBuffer(jsonData))
+	fmt.Println(requestUrl.String())
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+	req, err := http.NewRequest("POST", requestUrl.String(), bytes.NewBuffer(jsonData))
 	if err != nil {
+		println("Control : Failed to create request")
+		//
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// 요청 실행
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Control : Core access error - Server did not respond in time")
+		err = fmt.Errorf("server timeout or connection error")
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -39,21 +57,27 @@ func (t *CoreRequestTask[P, R]) Await() (body R, err error) {
 			err = e
 		}
 	}(resp.Body)
-
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
-
-	err = json.Unmarshal(b, &body)
-
+	fmt.Println("Core Response:", string(b))
+	json.Unmarshal(b, &body)
 	return
 }
 
-func NewCreateVMTask(core *vms.Core, param CreateVMParam) CoreRequestTask[CreateVMParam, string] {
-	return CoreRequestTask[CreateVMParam, string]{
+func NewCreateVMTask(core *vms.Core, param CreateVMParam) CoreRequestTask[CreateVMParam, CoreResponse[CreateVMResp]] {
+	return CoreRequestTask[CreateVMParam, CoreResponse[CreateVMResp]]{
 		Core:     core,
 		Endpoint: "/createVM",
+		Request:  param,
+	}
+}
+
+func NewDeleteVMTask(core *vms.Core, param DeletevmParam) CoreRequestTask[DeletevmParam, CoreResponse[DeleteVMResp]] {
+	return CoreRequestTask[DeletevmParam, CoreResponse[DeleteVMResp]]{
+		Core:     core,
+		Endpoint: "/DeleteVM",
 		Request:  param,
 	}
 }

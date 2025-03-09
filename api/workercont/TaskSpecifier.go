@@ -2,7 +2,9 @@ package WorkerCont
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"reflect"
 	"sync"
 
 	vms "github.com/easy-cloud-Knet/KWS_Control/vm"
@@ -18,22 +20,21 @@ type DeletevmParam struct {
 }
 
 type CreateVMParam struct {
-	DomType     string     `json:"domType"`
-	DomName     string     `json:"domName"`
-	UUID        string     `json:"uuid"`
-	OS          string     `json:"os"`
-	NetworkType string     `json:"netType"`
-	Memory      int        `json:"memory"`
-	CPU         int        `json:"cpu"`
-	IPs         []string   `json:"ips"`
-	Method      uint       `json:"method"`
-	Users       []UserInfo `json:"users"`
+	DomType string     `json:"domType"`
+	DomName string     `json:"domName"`
+	Users   []UserInfo `json:"users"`
+	UUID    string     `json:"uuid"`
+	OS      string     `json:"os"`
+	HWInfo  HWInfo     `json:"HWInfo"`
+	Network Network    `json:"network"`
+	Method  uint       `json:"method"`
 }
 
 type UserInfo struct {
 	UserName     string `json:"name"`
 	UserGroup    string `json:"groups"`
 	UserPassword string `json:"passWord"`
+	Ssh          []string
 }
 
 type HWInfo struct {
@@ -41,9 +42,44 @@ type HWInfo struct {
 	Memory int `json:"memory"`
 }
 
-type network struct {
-	Ips     []string
-	NetType int
+type Network struct {
+	Ips     []string `json:"ips"`
+	NetType int      `json:"netType"`
+}
+
+func ValidateStruct(s interface{}, excludeFields map[string]bool) error {
+	v := reflect.ValueOf(s)
+	t := reflect.TypeOf(s)
+
+	for i := 0; i < v.NumField(); i++ {
+		fieldName := t.Field(i).Name
+
+		// 제외할 필드라면 스킵
+		if excludeFields[fieldName] {
+			continue
+		}
+
+		fieldValue := v.Field(i)
+
+		// 문자열 필드가 비어 있는 경우 검사
+		if fieldValue.Kind() == reflect.String && fieldValue.String() == "" {
+			return fmt.Errorf("%s 필드가 비어 있습니다", fieldName)
+		}
+
+		// 슬라이스([]UserInfo)가 비어 있는 경우 검사
+		if fieldValue.Kind() == reflect.Slice && fieldValue.Len() == 0 {
+			return fmt.Errorf("%s 필드가 비어 있습니다", fieldName)
+		}
+
+		// 구조체(HWInfo)가 기본값인지 검사
+		if fieldValue.Kind() == reflect.Struct {
+			zeroValue := reflect.Zero(fieldValue.Type()) // 기본값 생성
+			if reflect.DeepEqual(fieldValue.Interface(), zeroValue.Interface()) {
+				return fmt.Errorf("%s 필드가 비어 있습니다", fieldName)
+			}
+		}
+	}
+	return nil
 }
 
 //parameters for each functions

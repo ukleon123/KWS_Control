@@ -22,7 +22,7 @@ func (t *TaskWorker) CreateVM(CreateVM *TaskControlCreateVM) {
 		fmt.Printf("Error marshaling JSON: %v\n", err)
 		return
 	}
-	var apiURL = "http://223.194.20.119:28779/createVM"
+	var apiURL = "http://223.194.20.119:34555/createVM"
 	// HTTP POST 요청 생성
 	resp, err := http.Post(apiURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
