@@ -74,7 +74,18 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 			}
 			WorkerCont.SshPrivateStore(param.UUID+"_"+strconv.Itoa(i), privateKey)
 		}
-		param.Network.Ips = []string{"10.5.15.99", "10.15.5.4"}
+
+		ip, err := contextStruct.AssignInternalAddress()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(WorkerCont.ControlError{
+				Message: "Failed to create VM",
+				Errors:  "Control : Failed to assign internal address",
+			})
+			return
+		}
+
+		param.Network.Ips = []string{ip.String()}
 		excludeFields := map[string]bool{"Network": true}
 		err = WorkerCont.ValidateStruct(param, excludeFields)
 		if err != nil {

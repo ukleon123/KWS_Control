@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	VmInternalSubnet string `yaml:"vm_internal_subnet"`
+	VmInternalSubnets []string `yaml:"vm_internal_subnets"`
 }
 
 func ReadConfig(path string) (Config, error) {
