@@ -55,6 +55,7 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 			})
 			return
 		}
+		//var privateKey string
 		for i := range param.Users {
 			privateKey, publicKey, err := WorkerCont.SshKeygen()
 			if err != nil {
@@ -88,6 +89,7 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 		param.Network.Ips = []string{ip.String()}
 		excludeFields := map[string]bool{"Network": true}
 		err = WorkerCont.ValidateStruct(param, excludeFields)
+		WorkerCont.GuacamoleConfig(param.UUID, param.Network.Ips[0], "1111")
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			println("Control : Invalid parameters provided")
