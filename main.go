@@ -20,7 +20,7 @@ func main() {
 	}
 
 	go func() {
-		err := api.Server(8080, &TaskHandlersPool, &contextStruct)
+		err := api.Server(8081, &TaskHandlersPool, &contextStruct)
 		//wg.Wait()
 		//api.Unlock()
 		if err != nil {

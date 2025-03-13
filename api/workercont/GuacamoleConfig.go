@@ -83,7 +83,7 @@ func GuacamoleConfig(UUID string, Ip string, PrivateKey string) {
       `, connID, name, value)
 		if err != nil {
 			log.Fatalf("Parameter %s 설정 실패: %v", name, err)
-		}git status
+		}
 	}
 	fmt.Println("Connection Parameter 설정 완료")
 

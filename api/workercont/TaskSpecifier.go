@@ -30,6 +30,19 @@ type CreateVMParam struct {
 	Method  uint       `json:"method"`
 }
 
+type HostDataType uint
+
+const (
+	CpuInfo HostDataType = iota
+	MemInfo
+	DiskInfoHi
+	SystemInfoHi
+)
+
+type GetMachineStatusParam struct {
+	HostDataType HostDataType `json:"host_dataType"`
+}
+
 type UserInfo struct {
 	UserName     string `json:"name"`
 	UserGroup    string `json:"groups"`

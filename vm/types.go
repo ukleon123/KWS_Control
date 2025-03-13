@@ -23,8 +23,8 @@ type Core struct {
 	CoreInfoIdx CoreInfo         //코어의 물리적인 정보
 	IsAlive     bool             //Core가 살았는지 죽었는지 확인
 	VMInfoIdx   map[UUID]*VMInfo // core 안에 VM 정보
-	FreeMemory  int              //할당되지 않은 코어의 Memory 자원
-	FreeCPU     int              //할당되지 않은 코어의 CPU 자원
+	FreeMemory  uint64           //할당되지 않은 코어의 Memory 자원
+	FreeCPU     float64          //할당되지 않은 코어의 CPU 자원
 }
 
 type CoreInfo struct {

@@ -15,6 +15,7 @@ import (
 
 type CoreRequestTask[P any, R any] struct {
 	Core     *vms.Core
+	Method   string
 	Endpoint string
 	Request  P
 	Response R
@@ -36,7 +37,7 @@ func (t *CoreRequestTask[P, R]) Await() (body R, err error) {
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
-	req, err := http.NewRequest("POST", requestUrl.String(), bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(t.Method, requestUrl.String(), bytes.NewBuffer(jsonData))
 	if err != nil {
 		println("Control : Failed to create request")
 		//
@@ -69,6 +70,7 @@ func (t *CoreRequestTask[P, R]) Await() (body R, err error) {
 func NewCreateVMTask(core *vms.Core, param CreateVMParam) CoreRequestTask[CreateVMParam, CoreResponse[CreateVMResp]] {
 	return CoreRequestTask[CreateVMParam, CoreResponse[CreateVMResp]]{
 		Core:     core,
+		Method:   "POST",
 		Endpoint: "/createVM",
 		Request:  param,
 	}
@@ -77,7 +79,26 @@ func NewCreateVMTask(core *vms.Core, param CreateVMParam) CoreRequestTask[Create
 func NewDeleteVMTask(core *vms.Core, param DeletevmParam) CoreRequestTask[DeletevmParam, CoreResponse[DeleteVMResp]] {
 	return CoreRequestTask[DeletevmParam, CoreResponse[DeleteVMResp]]{
 		Core:     core,
+		Method:   "POST",
 		Endpoint: "/DeleteVM",
 		Request:  param,
+	}
+}
+
+func NewGetCoreMachineFreeCpuInfoTask(core *vms.Core) CoreRequestTask[GetMachineStatusParam, CoreResponse[CoreMachineCpuInfoResp]] {
+	return CoreRequestTask[GetMachineStatusParam, CoreResponse[CoreMachineCpuInfoResp]]{
+		Core:     core,
+		Method:   "GET",
+		Endpoint: "/getStatusHost",
+		Request:  GetMachineStatusParam{HostDataType: CpuInfo},
+	}
+}
+
+func NewGetCoreMachineFreeMemoryInfoTask(core *vms.Core) CoreRequestTask[GetMachineStatusParam, CoreResponse[CoreMachineMemoryInfoResp]] {
+	return CoreRequestTask[GetMachineStatusParam, CoreResponse[CoreMachineMemoryInfoResp]]{
+		Core:     core,
+		Method:   "GET",
+		Endpoint: "/getStatusHost",
+		Request:  GetMachineStatusParam{HostDataType: MemInfo},
 	}
 }

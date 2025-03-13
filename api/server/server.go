@@ -89,7 +89,7 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 		param.Network.Ips = []string{ip.String()}
 		excludeFields := map[string]bool{"Network": true}
 		err = WorkerCont.ValidateStruct(param, excludeFields)
-		WorkerCont.GuacamoleConfig(param.UUID, param.Network.Ips[0], "1111")
+		//WorkerCont.GuacamoleConfig(param.UUID, param.Network.Ips[0], "1111")
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			println("Control : Invalid parameters provided")
@@ -99,7 +99,8 @@ func Server(portNum int, taskPool *WorkerCont.TaskHandler, contextStruct *vms.Co
 			})
 			return
 		}
-		core := contextStruct.SelectCoreForNewVM(param.HWInfo.Memory, param.HWInfo.CPU)
+
+		core := WorkerCont.UpdateCoreAndSelectCoreForNewVM(contextStruct, uint64(param.HWInfo.Memory), float64(param.HWInfo.CPU))
 		task := WorkerCont.NewCreateVMTask(core, param)
 		resp, err := task.Await()
 		if err != nil {
