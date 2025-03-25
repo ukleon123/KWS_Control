@@ -1,5 +1,5 @@
 # 빌드 및 실행 단계
-FROM golang:1.20
+FROM golang:1.21
 
 # 필수 패키지 설치 (libvirt 개발 패키지 포함)
 RUN apt-get update && apt-get install -y \
