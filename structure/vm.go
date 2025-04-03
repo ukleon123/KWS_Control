@@ -2,6 +2,11 @@ package structure
 
 type UUID string
 
+type Config struct {
+	VmInternalSubnets []string `yaml:"vm_internal_subnets"`
+	Cores             []string `yaml:"cores"`
+}
+
 type ControlInfra struct {
 	Config     Config
 	Cores      []Core         // 모든 코어를 관리
