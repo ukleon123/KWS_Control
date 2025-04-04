@@ -60,3 +60,5 @@ KWS_Control
 
 config.yaml
 sshprivate
+
+.gitmessage
