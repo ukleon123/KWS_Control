@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+
 	"github.com/easy-cloud-Knet/KWS_Control/request"
 	"github.com/easy-cloud-Knet/KWS_Control/request/model"
-	"net/http"
 
 	"log"
 
@@ -21,8 +22,8 @@ type CreateVMRequest struct {
 }
 
 // 새 VM 만드는 무언가.
-// 자원 많이 남은 코어를 찾고, 리소스 할당 업데이트, ControlInfra 상태 업데이트.
-func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.ControlInfra) error {
+// 자원 많이 남은 코어를 찾고, 리소스 할당 업데이트, ControlContext 상태 업데이트.
+func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.ControlContext) error {
 	var req CreateVMRequest
 	defer r.Body.Close() // defer << 에러가 발생해도 body가 닫히도록 보장.
 
@@ -81,13 +82,13 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	selectedCore.FreeDisk -= req.Disk
 	log.Printf("core %s updated: FreeMemory=%d, FreeCPU=%d, FreeDisk=%d", selectedCore.IP, selectedCore.FreeMemory, selectedCore.FreeCPU, selectedCore.FreeDisk)
 
-	// ControlInfra global 상태 업데이트
+	// ControlContext global 상태 업데이트
 	if contextStruct.VMLocation == nil {
 		contextStruct.VMLocation = make(map[vms.UUID]*vms.Core)
 	}
 	contextStruct.VMLocation[newUUID] = &contextStruct.Cores[selectedCoreIndex]
 	contextStruct.AliveVM = append(contextStruct.AliveVM, newVM)
-	log.Printf("VM %s added to ControlInfra", newUUID)
+	log.Printf("VM %s added to ControlContext", newUUID)
 
 	// request.go 부분 필요
 
@@ -95,7 +96,7 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	return nil
 }
 
-func DeleteVM(uuid vms.UUID, contextStruct *vms.ControlInfra) error {
+func DeleteVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
 	core := contextStruct.FindCoreByVmUUID(uuid)
 	if core == nil {
 		return errors.New("core not found")

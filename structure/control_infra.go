@@ -1,6 +1,6 @@
 package structure
 
-type ControlInfra struct {
+type ControlContext struct {
 	Config     Config
 	Cores      []Core         // 모든 코어를 관리
 	AliveVM    []*VMInfo      //현재 가동중인 VM의 정보
@@ -10,7 +10,7 @@ type ControlInfra struct {
 	// => 이렇게 한 이유는 이전 버전에서 VMPool map[UUID]*VM 이렇게 해놓았던데 이렇게 하면 VM이 많아졌을 때 너무 오래 걸릴거 같아서 IP를 기반으로 먼저 찾고 해당 core로 넘어가서 처리하면 더 좋지않을까? 생각했어요.
 }
 
-func (c *ControlInfra) FindCoreByVmUUID(uuid UUID) *Core {
+func (c *ControlContext) FindCoreByVmUUID(uuid UUID) *Core {
 	if core, ok := c.VMLocation[uuid]; ok {
 		return core
 	}

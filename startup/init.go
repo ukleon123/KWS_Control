@@ -4,25 +4,26 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/easy-cloud-Knet/KWS_Control/request"
-	"github.com/easy-cloud-Knet/KWS_Control/structure"
-	"golang.org/x/sync/errgroup"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/easy-cloud-Knet/KWS_Control/request"
+	"github.com/easy-cloud-Knet/KWS_Control/structure"
+	"golang.org/x/sync/errgroup"
+
 	_ "gopkg.in/yaml.v3"
 )
 
-func Initialize(dataPath, configPath string) (structure.ControlInfra, error) {
+func Initialize(dataPath, configPath string) (structure.ControlContext, error) {
 	b, err := os.ReadFile(dataPath)
 	if err != nil {
-		return structure.ControlInfra{}, err
+		return structure.ControlContext{}, err
 	}
 
-	var infra structure.ControlInfra
+	var infra structure.ControlContext
 	if err := json.Unmarshal(b, &infra); err != nil {
-		return structure.ControlInfra{}, fmt.Errorf("failed to parse JSON: %v", err)
+		return structure.ControlContext{}, fmt.Errorf("failed to parse JSON: %v", err)
 	}
 
 	infra.VMLocation = make(map[structure.UUID]*structure.Core)
@@ -37,7 +38,7 @@ func Initialize(dataPath, configPath string) (structure.ControlInfra, error) {
 	// config에 설정된 코어에 대해서 정보 업데이트
 	config, err := readConfig(configPath)
 	if err != nil {
-		return structure.ControlInfra{}, err
+		return structure.ControlContext{}, err
 	}
 
 	g, ctx := errgroup.WithContext(context.Background())
@@ -46,7 +47,7 @@ func Initialize(dataPath, configPath string) (structure.ControlInfra, error) {
 		ip := parts[0]
 		port, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return structure.ControlInfra{}, fmt.Errorf("error converting port number from %s: %w", coreAddress, err)
+			return structure.ControlContext{}, fmt.Errorf("error converting port number from %s: %w", coreAddress, err)
 		}
 
 		core := findCore(infra.Cores, ip, uint16(port))
@@ -85,7 +86,7 @@ func Initialize(dataPath, configPath string) (structure.ControlInfra, error) {
 	}
 
 	if err := g.Wait(); err != nil {
-		return structure.ControlInfra{}, fmt.Errorf("failed to get core info: %w", err)
+		return structure.ControlContext{}, fmt.Errorf("failed to get core info: %w", err)
 	}
 
 	return infra, nil
