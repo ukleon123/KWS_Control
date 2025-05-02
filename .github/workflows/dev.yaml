@@ -1,0 +1,27 @@
+name: Build and Deploy Docker Image on Development Container
+
+on:
+  push:
+    branches:
+      - Dev
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted  # 로컬 Ubuntu의 actions 계정에서 실행됨
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Build and tag Docker image
+      run: |
+        docker build --no-cache -t ${{ secrets.DOCKER_HUB_USERNAME }}/control_dev:latest .
+        docker tag ${{ secrets.DOCKER_HUB_USERNAME }}/control_dev:latest ${{ secrets.DOCKER_HUB_USERNAME }}/control_dev:latest
+
+    - name: Deploy container locally
+      run: |
+        IMAGE=${{ secrets.DOCKER_HUB_USERNAME }}/control_dev:latest
+        docker stop CONTROL_DEV || true
+        docker rm CONTROL_DEV || true
+        docker run -d --name CONTROL_DEV -p 8082:8081 $IMAGE
+        docker system prune -af
