@@ -9,24 +9,28 @@ import (
 	"github.com/easy-cloud-Knet/KWS_Control/request"
 	"github.com/easy-cloud-Knet/KWS_Control/request/model"
 
-	"log"
-
 	vms "github.com/easy-cloud-Knet/KWS_Control/structure"
 	"github.com/google/uuid"
+
+	"github.com/sirupsen/logrus"
 )
 
 // 새 VM 만드는 무언가.
 // 자원 많이 남은 코어를 찾고, 리소스 할당 업데이트, ControlContext 상태 업데이트.
 func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.ControlContext) error {
+	log := logrus.New()
+	log.SetReportCaller(true)
+
+
 	var req model.CreateVMRequest
 	defer r.Body.Close() // defer << 에러가 발생해도 body가 닫히도록 보장.
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Printf("err req body parsing: %v", err)
+		log.Errorf("err req body parsing: %v", err)
 		return errors.New("err req body parsing: " + err.Error())
 	}
 
-	log.Printf("func CreateVM() memory=%dMiB, cpu=%d, disk=%dMiB", req.HardwareInfo.Memory, req.HardwareInfo.CPU, req.HardwareInfo.Disk)
+	log.Infof("func CreateVM() memory=%dMiB, cpu=%d, disk=%dMiB", req.HardwareInfo.Memory, req.HardwareInfo.CPU, req.HardwareInfo.Disk)
 
 	// err = validateCreateVMRequest(req)
 
@@ -37,23 +41,23 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	selectedCoreIndex := -1
 	for i := range contextStruct.Cores {
 		core := &contextStruct.Cores[i]
-		log.Printf("core %s checking: FreeMemory=%d, FreeCPU=%d, FreeDisk=%d, IsAlive=%t", core.IP, core.FreeMemory, core.FreeCPU, core.FreeDisk, core.IsAlive)
+		log.Infof("core %s checking: FreeMemory=%d, FreeCPU=%d, FreeDisk=%d, IsAlive=%t", core.IP, core.FreeMemory, core.FreeCPU, core.FreeDisk, core.IsAlive)
 		if core.IsAlive && core.FreeMemory >= req.HardwareInfo.Memory && core.FreeCPU >= req.HardwareInfo.CPU && core.FreeDisk >= req.HardwareInfo.Disk {
 			selectedCore = core
 			selectedCoreIndex = i
-			log.Printf("core found: %s", selectedCore.IP)
+			log.Infof("core found: %s", selectedCore.IP)
 			break
 		}
 	}
 
 	if selectedCore == nil {
-		log.Println("selectedCore == nil")
+		log.Errorf("selectedCore == nil")
 		return errors.New("selectedCore == nil")
 	}
 
 	// vm uuid 생성
 	newUUID := vms.UUID(uuid.NewString())
-	log.Printf("new UUID: %s", newUUID)
+	log.Infof("new UUID: %s", newUUID)
 
 	// ip, err := contextStruct.AssignInternalAddress()
 	vmIP := "10.0.0.0" // 할당된 ip 받아오도록 하는 거 필요.
@@ -74,7 +78,7 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	selectedCore.FreeMemory -= req.HardwareInfo.Memory
 	selectedCore.FreeCPU -= req.HardwareInfo.CPU
 	selectedCore.FreeDisk -= req.HardwareInfo.Disk
-	log.Printf("core %s updated: FreeMemory=%d, FreeCPU=%d, FreeDisk=%d", selectedCore.IP, selectedCore.FreeMemory, selectedCore.FreeCPU, selectedCore.FreeDisk)
+	log.Infof("core %s updated: FreeMemory=%d, FreeCPU=%d, FreeDisk=%d", selectedCore.IP, selectedCore.FreeMemory, selectedCore.FreeCPU, selectedCore.FreeDisk)
 
 	// ControlContext global 상태 업데이트
 	if contextStruct.VMLocation == nil {
@@ -82,11 +86,11 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	}
 	contextStruct.VMLocation[newUUID] = &contextStruct.Cores[selectedCoreIndex]
 	contextStruct.AliveVM = append(contextStruct.AliveVM, newVM)
-	log.Printf("VM %s added to ControlContext", newUUID)
+	log.Infof("VM %s added to ControlContext", newUUID)
 
 	// request.go 부분 필요
 
-	log.Printf("UUID %s CreateVM request success on core %s", newUUID, selectedCore.IP)
+	log.Infof("UUID %s CreateVM request success on core %s", newUUID, selectedCore.IP)
 	return nil
 }
 

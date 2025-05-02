@@ -1,5 +1,9 @@
 package structure
 
+import (
+	"github.com/sirupsen/logrus"
+)
+
 type ControlContext struct {
 	Config     Config
 	Cores      []Core         // 모든 코어를 관리
@@ -11,8 +15,14 @@ type ControlContext struct {
 }
 
 func (c *ControlContext) FindCoreByVmUUID(uuid UUID) *Core {
+
+	log := logrus.New()
+	log.SetReportCaller(true)
+
 	if core, ok := c.VMLocation[uuid]; ok {
+		log.Infof("Found core for VM UUID %s: %s", uuid, core.IP)
 		return core
 	}
+	log.Errorf("Core not found for VM UUID %s", uuid)
 	return nil
 }
