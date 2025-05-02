@@ -25,6 +25,7 @@ func (c *handlerContext) createVm(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+	defer r.Body.Close()
 
 	w.WriteHeader(http.StatusCreated)
 	_, _ = w.Write([]byte("VM created successfully"))
@@ -36,10 +37,29 @@ func (c *handlerContext) deleteVm(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	defer r.Body.Close()
 
 	err := service.DeleteVM(req.UUID, c.context)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError) // TODO: 코어가 없는 경우 처리
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (c *handlerContext) shutdownVm(w http.ResponseWriter, r *http.Request) {
+	var req model.ApiShutdownVmRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	err := service.ShutdownVM(req.UUID, c.context)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/easy-cloud-Knet/KWS_Control/request"
 	"github.com/easy-cloud-Knet/KWS_Control/request/model"
@@ -97,7 +99,7 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 func DeleteVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
 	core := contextStruct.FindCoreByVmUUID(uuid)
 	if core == nil {
-		return errors.New("core not found")
+		return fmt.Errorf("VM with UUID %s not found", string(uuid))
 	}
 
 	client := request.NewCoreClient(core)
@@ -107,4 +109,34 @@ func DeleteVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
 	})
 
 	return err
+}
+
+func ShutdownVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
+	core := contextStruct.FindCoreByVmUUID(uuid)
+	if core == nil {
+		return fmt.Errorf("VM with UUID %s not found", string(uuid))
+	}
+
+	client := request.NewCoreClient(core)
+	_, err := client.ForceShutdownVM(context.Background(), model.ForceShutdownVMRequest{
+		UUID: uuid,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	foundIndex := -1
+	for i, vm := range contextStruct.AliveVM {
+		if vm.UUID == uuid {
+			foundIndex = i
+			break
+		}
+	}
+
+	if foundIndex != -1 {
+		contextStruct.AliveVM = slices.Delete(contextStruct.AliveVM, foundIndex, foundIndex+1)
+	}
+
+	return nil
 }

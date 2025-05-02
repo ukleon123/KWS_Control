@@ -117,3 +117,12 @@ func (c *CoreClient) GetCoreMachineMemoryInfo(context context.Context) (model.Co
 	}
 	return response, nil
 }
+
+func (c *CoreClient) ForceShutdownVM(ctx context.Context, req model.ForceShutdownVMRequest) (model.ForceShutdownVMResponse, error) {
+	var response model.ForceShutdownVMResponse
+	err := c.doRequest(ctx, http.MethodPost, "/forceShutDownUUID", req, &response)
+	if err != nil {
+		return model.ForceShutdownVMResponse{}, err
+	}
+	return response, nil
+}

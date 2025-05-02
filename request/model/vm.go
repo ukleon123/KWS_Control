@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/easy-cloud-Knet/KWS_Control/structure"
+	vms "github.com/easy-cloud-Knet/KWS_Control/structure"
 )
 
 type HardwareInfo struct {
@@ -95,4 +96,12 @@ type CoreMachineSystemInfoResponse struct {
 	BootTime uint64  `json:"boot_time_epoch"`
 	CPUTemp  float64 `json:"cpu_temperature,omitempty"`
 	RAMTemp  float64 `json:"ram_temperature,omitempty"`
+}
+
+type ForceShutdownVMRequest struct {
+	UUID vms.UUID `json:"UUID"`
+}
+
+type ForceShutdownVMResponse struct {
+	Message string `json:"message"`
 }
