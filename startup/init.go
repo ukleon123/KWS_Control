@@ -60,6 +60,8 @@ func Initialize(dataPath, configPath string) (structure.ControlContext, error) {
 			infra.Cores = append(infra.Cores, newCore)
 
 			core = &newCore
+		} else {
+			core.IsAlive = true
 		}
 
 		client := request.NewCoreClient(core)
@@ -78,8 +80,12 @@ func Initialize(dataPath, configPath string) (structure.ControlContext, error) {
 			}
 
 			core.CoreInfoIdx.Cpu = uint32(cpuResp.Idle)
-			core.CoreInfoIdx.Memory = uint32(memResp.Available)
-			core.CoreInfoIdx.Disk = uint32(diskResp.Free)
+			core.CoreInfoIdx.Memory = uint32(memResp.Total)
+			core.CoreInfoIdx.Disk = uint32(diskResp.Total)
+
+			core.FreeDisk = uint32(diskResp.Free)
+			core.FreeMemory = uint32(memResp.Available)
+			core.FreeCPU = uint32(cpuResp.Idle)
 
 			return nil
 		})
