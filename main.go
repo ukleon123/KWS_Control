@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/easy-cloud-Knet/KWS_Control/structure"
 	_ "os"
 
 	"github.com/easy-cloud-Knet/KWS_Control/api"
@@ -20,6 +22,8 @@ func main() {
 		panic(err)
 	}
 
+	printCores(contextStruct.Cores)
+
 	go func() {
 		err := api.Server(contextStruct.Config.Port, &contextStruct)
 		if err != nil {
@@ -28,4 +32,14 @@ func main() {
 		}
 	}()
 	select {}
+}
+
+func printCores(cores []structure.Core) {
+	for i, core := range cores {
+		fmt.Printf("Core #%d: %s\n", i, core.IP)
+		fmt.Printf("  * IsAlive: %t\n", core.IsAlive)
+		fmt.Printf("  * FreeMemory(MiB): %d\n", core.FreeMemory)
+		fmt.Printf("  * FreeCPU: %d\n", core.FreeCPU)
+		fmt.Printf("  * FreeDisk(MiB): %d\n", core.FreeDisk)
+	}
 }
