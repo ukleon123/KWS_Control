@@ -40,17 +40,17 @@ type DeleteVMRequest struct {
 	Type DomainDeleteType `json:"DeleteType"`
 }
 
-type HostDataType uint
+type StatusDataType uint
 
 const (
-	CpuInfo HostDataType = iota
+	CpuInfo StatusDataType = iota
 	MemInfo
 	DiskInfoHi
 	SystemInfoHi
 )
 
 type GetMachineStatusRequest struct {
-	HostDataType HostDataType `json:"host_dataType"`
+	HostDataType StatusDataType `json:"host_dataType"`
 }
 
 type NetDefine struct {
@@ -104,4 +104,9 @@ type ForceShutdownVMRequest struct {
 
 type ForceShutdownVMResponse struct {
 	Message string `json:"message"`
+}
+
+type GetVMStatusRequest struct {
+	UUID     structure.UUID `json:"UUID"`
+	DataType StatusDataType `json:"dataType"`
 }

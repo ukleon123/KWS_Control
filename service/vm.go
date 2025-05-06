@@ -142,3 +142,75 @@ func ShutdownVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
 
 	return nil
 }
+
+func GetVMCpuInfo(uuid vms.UUID, contextStruct *vms.ControlContext) (model.CoreMachineCpuInfoResponse, error) {
+	log := logrus.New()
+	log.SetReportCaller(true)
+
+	core := contextStruct.FindCoreByVmUUID(uuid)
+	if core == nil {
+		msg := fmt.Sprintf("VM with UUID %s not found", string(uuid))
+		log.Error(msg)
+		return model.CoreMachineCpuInfoResponse{}, errors.New(msg)
+	}
+
+	client := request.NewCoreClient(core)
+
+	cpuInfo, err := client.GetVMCpuInfo(context.Background(), uuid)
+	if err != nil {
+		msg := fmt.Sprintf("Error getting CPU info for VM %s on core %s: %v", uuid, core.IP, err)
+		log.Error(msg)
+		return model.CoreMachineCpuInfoResponse{}, errors.New(msg)
+	}
+
+	log.Infof("Retrieved CPU status for VM %s on core %s", uuid, core.IP)
+	return cpuInfo, nil
+}
+
+func GetVMMemoryInfo(uuid vms.UUID, contextStruct *vms.ControlContext) (model.CoreMachineMemoryInfoResponse, error) {
+	log := logrus.New()
+	log.SetReportCaller(true)
+
+	core := contextStruct.FindCoreByVmUUID(uuid)
+	if core == nil {
+		msg := fmt.Sprintf("VM with UUID %s not found", string(uuid))
+		log.Error(msg)
+		return model.CoreMachineMemoryInfoResponse{}, errors.New(msg)
+	}
+
+	client := request.NewCoreClient(core)
+
+	memoryInfo, err := client.GetVMMemoryInfo(context.Background(), uuid)
+	if err != nil {
+		msg := fmt.Sprintf("Error getting memory info for VM %s on core %s: %v", uuid, core.IP, err)
+		log.Error(msg)
+		return model.CoreMachineMemoryInfoResponse{}, errors.New(msg)
+	}
+
+	log.Infof("Retrieved Memory status for VM %s on core %s", uuid, core.IP)
+	return memoryInfo, nil
+}
+
+func GetVMDiskInfo(uuid vms.UUID, contextStruct *vms.ControlContext) (model.CoreMachineDiskInfoResponse, error) {
+	log := logrus.New()
+	log.SetReportCaller(true)
+
+	core := contextStruct.FindCoreByVmUUID(uuid)
+	if core == nil {
+		msg := fmt.Sprintf("VM with UUID %s not found", string(uuid))
+		log.Error(msg)
+		return model.CoreMachineDiskInfoResponse{}, errors.New(msg)
+	}
+
+	client := request.NewCoreClient(core)
+
+	diskInfo, err := client.GetVMDiskInfo(context.Background(), uuid)
+	if err != nil {
+		msg := fmt.Sprintf("Error getting disk info for VM %s on core %s: %v", uuid, core.IP, err)
+		log.Error(msg)
+		return model.CoreMachineDiskInfoResponse{}, errors.New(msg)
+	}
+
+	log.Infof("Retrieved Disk status for VM %s on core %s", uuid, core.IP)
+	return diskInfo, nil
+}

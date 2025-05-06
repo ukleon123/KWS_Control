@@ -20,6 +20,7 @@ func Server(portNum int, contextStruct *vms.ControlContext) error {
 	http.HandleFunc("POST /vm", h.createVm)
 	http.HandleFunc("DELETE /vm", h.deleteVm)
 	http.HandleFunc("POST /vm/shutdown", h.shutdownVm)
+	http.HandleFunc("GET /vm/status", h.vmStatus)
 
 	fmt.Printf("Running server on port %d\n", portNum)
 	err := http.ListenAndServe(":"+strconv.Itoa(portNum), nil)
