@@ -78,7 +78,7 @@ func (c *CoreClient) CreateVM(context context.Context, req model.CreateVMRequest
 
 func (c *CoreClient) DeleteVM(context context.Context, req model.DeleteVMRequest) (model.DeleteVMResponse, error) {
 	var response model.DeleteVMResponse
-	err := c.doRequest(context, http.MethodPost, "/deleteVM", req, &response)
+	err := c.doRequest(context, http.MethodPost, "/DeleteVM", req, &response)
 	if err != nil {
 		return model.DeleteVMResponse{}, err
 	}
@@ -114,6 +114,54 @@ func (c *CoreClient) GetCoreMachineMemoryInfo(context context.Context) (model.Co
 	}, &response)
 	if err != nil {
 		return model.CoreMachineMemoryInfoResponse{}, err
+	}
+	return response, nil
+}
+
+func (c *CoreClient) GetVMCpuInfo(ctx context.Context, uuid structure.UUID) (model.CoreMachineCpuInfoResponse, error) {
+	var response model.CoreMachineCpuInfoResponse
+	req := model.GetVMStatusRequest{
+		UUID:     uuid,
+		DataType: model.CpuInfo,
+	}
+	err := c.doRequest(ctx, http.MethodGet, "/getStatusUUID", req, &response)
+	if err != nil {
+		return model.CoreMachineCpuInfoResponse{}, err
+	}
+	return response, nil
+}
+
+func (c *CoreClient) GetVMDiskInfo(ctx context.Context, uuid structure.UUID) (model.CoreMachineDiskInfoResponse, error) {
+	var response model.CoreMachineDiskInfoResponse
+	req := model.GetVMStatusRequest{
+		UUID:     uuid,
+		DataType: model.DiskInfoHi,
+	}
+	err := c.doRequest(ctx, http.MethodGet, "/getStatusUUID", req, &response)
+	if err != nil {
+		return model.CoreMachineDiskInfoResponse{}, err
+	}
+	return response, nil
+}
+
+func (c *CoreClient) GetVMMemoryInfo(ctx context.Context, uuid structure.UUID) (model.CoreMachineMemoryInfoResponse, error) {
+	var response model.CoreMachineMemoryInfoResponse
+	req := model.GetVMStatusRequest{
+		UUID:     uuid,
+		DataType: model.MemInfo,
+	}
+	err := c.doRequest(ctx, http.MethodGet, "/getStatusUUID", req, &response)
+	if err != nil {
+		return model.CoreMachineMemoryInfoResponse{}, err
+	}
+	return response, nil
+}
+
+func (c *CoreClient) ForceShutdownVM(ctx context.Context, req model.ForceShutdownVMRequest) (model.ForceShutdownVMResponse, error) {
+	var response model.ForceShutdownVMResponse
+	err := c.doRequest(ctx, http.MethodPost, "/forceShutDownUUID", req, &response)
+	if err != nil {
+		return model.ForceShutdownVMResponse{}, err
 	}
 	return response, nil
 }

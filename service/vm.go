@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/easy-cloud-Knet/KWS_Control/request"
 	"github.com/easy-cloud-Knet/KWS_Control/request/model"
 
 	vms "github.com/easy-cloud-Knet/KWS_Control/structure"
-	"github.com/google/uuid"
-
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,7 +20,6 @@ import (
 func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.ControlContext) error {
 	log := logrus.New()
 	log.SetReportCaller(true)
-
 
 	var req model.CreateVMRequest
 	defer r.Body.Close() // defer << 에러가 발생해도 body가 닫히도록 보장.
@@ -42,6 +41,7 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	for i := range contextStruct.Cores {
 		core := &contextStruct.Cores[i]
 		log.Infof("core %s checking: FreeMemory=%d, FreeCPU=%d, FreeDisk=%d, IsAlive=%t", core.IP, core.FreeMemory, core.FreeCPU, core.FreeDisk, core.IsAlive)
+
 		if core.IsAlive && core.FreeMemory >= req.HardwareInfo.Memory && core.FreeCPU >= req.HardwareInfo.CPU && core.FreeDisk >= req.HardwareInfo.Disk {
 			selectedCore = core
 			selectedCoreIndex = i
@@ -55,15 +55,11 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 		return errors.New("selectedCore == nil")
 	}
 
-	// vm uuid 생성
-	newUUID := vms.UUID(uuid.NewString())
-	log.Infof("new UUID: %s", newUUID)
-
 	// ip, err := contextStruct.AssignInternalAddress()
 	vmIP := "10.0.0.0" // 할당된 ip 받아오도록 하는 거 필요.
 
 	newVM := &vms.VMInfo{
-		UUID:   newUUID,
+		UUID:   req.UUID,
 		Memory: req.HardwareInfo.Memory,
 		Cpu:    req.HardwareInfo.CPU,
 		Disk:   req.HardwareInfo.Disk,
@@ -74,30 +70,38 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	if selectedCore.VMInfoIdx == nil {
 		selectedCore.VMInfoIdx = make(map[vms.UUID]*vms.VMInfo)
 	}
-	selectedCore.VMInfoIdx[newUUID] = newVM
+	selectedCore.VMInfoIdx[req.UUID] = newVM
 	selectedCore.FreeMemory -= req.HardwareInfo.Memory
 	selectedCore.FreeCPU -= req.HardwareInfo.CPU
 	selectedCore.FreeDisk -= req.HardwareInfo.Disk
 	log.Infof("core %s updated: FreeMemory=%d, FreeCPU=%d, FreeDisk=%d", selectedCore.IP, selectedCore.FreeMemory, selectedCore.FreeCPU, selectedCore.FreeDisk)
 
+	req.NetConf.Ips = []string{vmIP}
+	req.NetConf.NetType = 0
+
+	client := request.NewCoreClient(selectedCore)
+	_, err := client.CreateVM(context.Background(), req)
+	if err != nil {
+		log.Infof("Error creating VM on core %s: %v", selectedCore.IP, err)
+		return err
+	}
+
 	// ControlContext global 상태 업데이트
 	if contextStruct.VMLocation == nil {
 		contextStruct.VMLocation = make(map[vms.UUID]*vms.Core)
 	}
-	contextStruct.VMLocation[newUUID] = &contextStruct.Cores[selectedCoreIndex]
+	contextStruct.VMLocation[req.UUID] = &contextStruct.Cores[selectedCoreIndex]
 	contextStruct.AliveVM = append(contextStruct.AliveVM, newVM)
-	log.Infof("VM %s added to ControlContext", newUUID)
+	log.Infof("VM %s added to ControlContext", req.UUID)
 
-	// request.go 부분 필요
-
-	log.Infof("UUID %s CreateVM request success on core %s", newUUID, selectedCore.IP)
+	log.Infof("UUID %s CreateVM request success on core %s", req.UUID, selectedCore.IP)
 	return nil
 }
 
 func DeleteVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
 	core := contextStruct.FindCoreByVmUUID(uuid)
 	if core == nil {
-		return errors.New("core not found")
+		return fmt.Errorf("VM with UUID %s not found", string(uuid))
 	}
 
 	client := request.NewCoreClient(core)
@@ -107,4 +111,106 @@ func DeleteVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
 	})
 
 	return err
+}
+
+func ShutdownVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
+	core := contextStruct.FindCoreByVmUUID(uuid)
+	if core == nil {
+		return fmt.Errorf("VM with UUID %s not found", string(uuid))
+	}
+
+	client := request.NewCoreClient(core)
+	_, err := client.ForceShutdownVM(context.Background(), model.ForceShutdownVMRequest{
+		UUID: uuid,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	foundIndex := -1
+	for i, vm := range contextStruct.AliveVM {
+		if vm.UUID == uuid {
+			foundIndex = i
+			break
+		}
+	}
+
+	if foundIndex != -1 {
+		contextStruct.AliveVM = slices.Delete(contextStruct.AliveVM, foundIndex, foundIndex+1)
+	}
+
+	return nil
+}
+
+func GetVMCpuInfo(uuid vms.UUID, contextStruct *vms.ControlContext) (model.CoreMachineCpuInfoResponse, error) {
+	log := logrus.New()
+	log.SetReportCaller(true)
+
+	core := contextStruct.FindCoreByVmUUID(uuid)
+	if core == nil {
+		msg := fmt.Sprintf("VM with UUID %s not found", string(uuid))
+		log.Error(msg)
+		return model.CoreMachineCpuInfoResponse{}, errors.New(msg)
+	}
+
+	client := request.NewCoreClient(core)
+
+	cpuInfo, err := client.GetVMCpuInfo(context.Background(), uuid)
+	if err != nil {
+		msg := fmt.Sprintf("Error getting CPU info for VM %s on core %s: %v", uuid, core.IP, err)
+		log.Error(msg)
+		return model.CoreMachineCpuInfoResponse{}, errors.New(msg)
+	}
+
+	log.Infof("Retrieved CPU status for VM %s on core %s", uuid, core.IP)
+	return cpuInfo, nil
+}
+
+func GetVMMemoryInfo(uuid vms.UUID, contextStruct *vms.ControlContext) (model.CoreMachineMemoryInfoResponse, error) {
+	log := logrus.New()
+	log.SetReportCaller(true)
+
+	core := contextStruct.FindCoreByVmUUID(uuid)
+	if core == nil {
+		msg := fmt.Sprintf("VM with UUID %s not found", string(uuid))
+		log.Error(msg)
+		return model.CoreMachineMemoryInfoResponse{}, errors.New(msg)
+	}
+
+	client := request.NewCoreClient(core)
+
+	memoryInfo, err := client.GetVMMemoryInfo(context.Background(), uuid)
+	if err != nil {
+		msg := fmt.Sprintf("Error getting memory info for VM %s on core %s: %v", uuid, core.IP, err)
+		log.Error(msg)
+		return model.CoreMachineMemoryInfoResponse{}, errors.New(msg)
+	}
+
+	log.Infof("Retrieved Memory status for VM %s on core %s", uuid, core.IP)
+	return memoryInfo, nil
+}
+
+func GetVMDiskInfo(uuid vms.UUID, contextStruct *vms.ControlContext) (model.CoreMachineDiskInfoResponse, error) {
+	log := logrus.New()
+	log.SetReportCaller(true)
+
+	core := contextStruct.FindCoreByVmUUID(uuid)
+	if core == nil {
+		msg := fmt.Sprintf("VM with UUID %s not found", string(uuid))
+		log.Error(msg)
+		return model.CoreMachineDiskInfoResponse{}, errors.New(msg)
+	}
+
+	client := request.NewCoreClient(core)
+
+	diskInfo, err := client.GetVMDiskInfo(context.Background(), uuid)
+	if err != nil {
+		msg := fmt.Sprintf("Error getting disk info for VM %s on core %s: %v", uuid, core.IP, err)
+		log.Error(msg)
+		return model.CoreMachineDiskInfoResponse{}, errors.New(msg)
+	}
+
+	log.Infof("Retrieved Disk status for VM %s on core %s", uuid, core.IP)
+	return diskInfo, nil
 }
