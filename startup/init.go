@@ -31,19 +31,30 @@ func Initialize(dataPath, configPath string) (structure.ControlContext, error) {
 		for vmUUID := range infra.Cores[i].VMInfoIdx {
 			infra.VMLocation[vmUUID] = &infra.Cores[i]
 		}
-
 		infra.Cores[i].IsAlive = false
 	}
 
 	// config에 설정된 코어에 대해서 정보 업데이트
 	config, err := readConfig(configPath)
 	if err != nil {
-		return structure.ControlContext{}, err
+		return structure.ControlContext{}, fmt.Errorf("failed to read config file %s: %w", configPath, err)
+	}
+
+	// 환경변수에서 먼저 설정을 불러오고 값이 없을 때만 config 파일에서 가져옴
+	var coreAddresses []string
+	coresEnv := os.Getenv("CORES")
+	if coresEnv != "" {
+		coreAddresses = strings.Split(coresEnv, ",")
+	} else {
+		coreAddresses = config.Cores
 	}
 
 	g, ctx := errgroup.WithContext(context.Background())
-	for _, coreAddress := range config.Cores {
+	for _, coreAddress := range coreAddresses {
 		parts := strings.Split(coreAddress, ":")
+		if len(parts) != 2 {
+			return structure.ControlContext{}, fmt.Errorf("invalid core address format in '%s': expected ip:port", coreAddress)
+		}
 		ip := parts[0]
 		port, err := strconv.Atoi(parts[1])
 		if err != nil {
@@ -64,28 +75,32 @@ func Initialize(dataPath, configPath string) (structure.ControlContext, error) {
 			core.IsAlive = true
 		}
 
-		client := request.NewCoreClient(core)
+		currentCore := core
+		client := request.NewCoreClient(currentCore)
 		g.Go(func() error {
 			cpuResp, err := client.GetCoreMachineCpuInfo(ctx)
 			if err != nil {
-				return err
+				currentCore.IsAlive = false
+				return fmt.Errorf("failed to get CPU info for core %s:%d: %w", currentCore.IP, currentCore.Port, err)
 			}
 			memResp, err := client.GetCoreMachineMemoryInfo(ctx)
 			if err != nil {
-				return err
+				currentCore.IsAlive = false
+				return fmt.Errorf("failed to get Memory info for core %s:%d: %w", currentCore.IP, currentCore.Port, err)
 			}
 			diskResp, err := client.GetCoreMachineDiskInfo(ctx)
 			if err != nil {
-				return err
+				currentCore.IsAlive = false
+				return fmt.Errorf("failed to get Disk info for core %s:%d: %w", currentCore.IP, currentCore.Port, err)
 			}
 
-			core.CoreInfoIdx.Cpu = uint32(cpuResp.Idle)
-			core.CoreInfoIdx.Memory = uint32(memResp.Total)
-			core.CoreInfoIdx.Disk = uint32(diskResp.Total)
+			currentCore.CoreInfoIdx.Cpu = uint32(cpuResp.Idle)
+			currentCore.CoreInfoIdx.Memory = uint32(memResp.Total)
+			currentCore.CoreInfoIdx.Disk = uint32(diskResp.Total)
 
-			core.FreeDisk = uint32(diskResp.Free)
-			core.FreeMemory = uint32(memResp.Available)
-			core.FreeCPU = uint32(cpuResp.Idle)
+			currentCore.FreeDisk = uint32(diskResp.Free)
+			currentCore.FreeMemory = uint32(memResp.Available)
+			currentCore.FreeCPU = uint32(cpuResp.Idle)
 
 			return nil
 		})
@@ -100,9 +115,9 @@ func Initialize(dataPath, configPath string) (structure.ControlContext, error) {
 }
 
 func findCore(cores []structure.Core, ip string, port uint16) *structure.Core {
-	for _, c := range cores {
-		if c.IP == ip && c.Port == port {
-			return &c
+	for i := range cores {
+		if cores[i].IP == ip && cores[i].Port == port {
+			return &cores[i]
 		}
 	}
 	return nil
