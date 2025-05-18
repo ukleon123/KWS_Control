@@ -26,3 +26,8 @@ jobs:
         docker rm CONTROL_DEV || true
         docker run -d --name CONTROL_DEV -p 8082:8081 -e CORES="${{ secrets.CORES }}" $IMAGE
         docker system prune -af
+
+    - name: Verify CORES in container
+      run: |
+        echo ">>> CORES 값 확인:"
+        docker exec CONTROL_DEV printenv CORES
