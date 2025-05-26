@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"time"
@@ -28,12 +29,16 @@ func NewCoreClient(core *structure.Core) *CoreClient {
 }
 
 func (c *CoreClient) doRequest(context context.Context, method, path string, requestBody interface{}, responseBody interface{}) error {
+	log := logrus.New()
+
 	var reqBodyReader io.Reader
 	if requestBody != nil {
 		jsonData, err := json.Marshal(requestBody)
 		if err != nil {
 			return fmt.Errorf("failed to marshal request body: %w", err)
 		}
+
+		log.Debugln("(-> Core) request body:", string(jsonData))
 		reqBodyReader = bytes.NewBuffer(jsonData)
 	}
 

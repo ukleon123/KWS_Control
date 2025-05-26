@@ -86,6 +86,11 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	client := request.NewCoreClient(selectedCore)
 	_, err := client.CreateVM(context.Background(), req)
 	if err != nil {
+		delete(selectedCore.VMInfoIdx, req.UUID)
+		selectedCore.FreeMemory += req.HardwareInfo.Memory
+		selectedCore.FreeCPU += req.HardwareInfo.CPU
+		selectedCore.FreeDisk += req.HardwareInfo.Disk
+
 		log.Infof("Error creating VM on core %s: %v", selectedCore.IP, err)
 		return err
 	}
