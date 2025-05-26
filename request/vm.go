@@ -39,7 +39,7 @@ func (c *CoreClient) doRequest(context context.Context, method, path string, req
 			return fmt.Errorf("failed to marshal request body: %w", err)
 		}
 
-		log.Debugln("(-> Core) request body:", string(jsonData))
+		log.Println("(-> Core) request body:", string(jsonData))
 		reqBodyReader = bytes.NewBuffer(jsonData)
 	}
 
