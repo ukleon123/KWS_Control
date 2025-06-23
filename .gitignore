@@ -61,6 +61,8 @@ KWS_Control
 /config.yaml
 sshprivate
 
+kws
+
 .gitmessage
 
 .env
