@@ -49,7 +49,7 @@ func (c *ControlContext) AssignInternalAddress() {
 
 		for ip := ipnet.IP.Mask(ipnet.Mask); ipnet.Contains(ip); incrementIP(ip) {
 			ipStr := ip.String()
-			if !usedIPs[ipStr] && ipStr != ipnet.IP.String() {
+			if !usedIPs[ipStr] {
 				fmt.Println("할당 가능한 IP:", ipStr)
 				return
 			}
