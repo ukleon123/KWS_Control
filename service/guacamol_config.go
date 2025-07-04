@@ -49,10 +49,16 @@ func GuacamoleConfig(Username string, UUID string, Ip string, PrivateKey string,
 
 	db, err := sql.Open("mysql", getDBConnection())
 	if err != nil {
-		log.Error("guacamole: failed to establish the database connection:", err)
+		log.Warnf("guacamole: failed to establish the database connection: %v", err)
 		return ""
 	}
 	defer db.Close()
+
+	// db테스트먼저
+	if err := db.Ping(); err != nil {
+		log.Warnf("guacamole: database connection test failed: %v", err)
+		return ""
+	}
 
 	// 1. 무작위 비밀번호 생성
 	userPass, err := generateRandomPassword(12)
@@ -76,7 +82,7 @@ func GuacamoleConfig(Username string, UUID string, Ip string, PrivateKey string,
 
 	tx, err := db.Begin()
 	if err != nil {
-		log.Error("guacamole: failed to start transaction:", err)
+		log.Warnf("guacamole: failed to start transaction: %v", err)
 		return ""
 	}
 
@@ -90,15 +96,30 @@ func GuacamoleConfig(Username string, UUID string, Ip string, PrivateKey string,
 	}()
 
 	// 4. Entity 생성
-	res, err := tx.Exec(`INSERT INTO guacamole_entity (name, type) VALUES (?, 'USER')`, UUID)
+	// 중복 확인 이후
+	var entityID int64
+	var res sql.Result
+	err = tx.QueryRow(`SELECT entity_id FROM guacamole_entity WHERE name = ? AND type = 'USER'`, UUID).Scan(&entityID)
 	if err != nil {
-		log.Error("guacamole: failed to create an entity:", err)
-		return ""
-	}
-	entityID, err := res.LastInsertId()
-	if err != nil {
-		log.Error("guacamole: failed to retrieve entity id:", err)
-		return ""
+		if err == sql.ErrNoRows {
+			// 엔트리가 존재하지 않아야 새로 생성하도록--
+			res, err = tx.Exec(`INSERT INTO guacamole_entity (name, type) VALUES (?, 'USER')`, UUID) // 근데 이렇게 쌩으로 sql넣는 거 맞나요..?
+			if err != nil {
+				log.Error("guacamole: failed to create an entity:", err)
+				return ""
+			}
+			entityID, err = res.LastInsertId()
+			if err != nil {
+				log.Error("guacamole: failed to retrieve entity id:", err)
+				return ""
+			}
+			log.Info("guacamole: created new entity with ID:", entityID)
+		} else {
+			log.Error("guacamole: failed to check existing entity:", err)
+			return ""
+		}
+	} else {
+		log.Info("guacamole: using existing entity with ID:", entityID)
 	}
 
 	// 5. User 생성 (salt 포함)
