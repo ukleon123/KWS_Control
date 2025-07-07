@@ -109,3 +109,40 @@ func (c *handlerContext) vmStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (c *handlerContext) redis(w http.ResponseWriter, r *http.Request) {
+	log := logrus.New()
+	log.SetReportCaller(true)
+
+	var req model.Redis
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		log.Errorf("Invalid request body: %v", err)
+		return
+	}
+	defer r.Body.Close()
+
+	key := string(req.UUID)
+	value := req.Status
+
+	ctx := r.Context()
+
+	// Redis에 저장
+	if err := c.rdb.Set(ctx, key, value, 0).Err(); err != nil {
+		http.Error(w, "Failed to update Redis", http.StatusInternalServerError)
+		log.Errorf("Redis SET failed: %v", err)
+		return
+	}
+
+	storedValue, err := c.rdb.Get(ctx, key).Result()
+	if err != nil {
+		http.Error(w, "Failed to get value from Redis", http.StatusInternalServerError)
+		log.Errorf("Redis GET failed: %v", err)
+		return
+	}
+
+	log.Infof("Redis 확인 완료 - key: %s, value: %s", key, storedValue)
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("VM status updated in Redis"))
+}
