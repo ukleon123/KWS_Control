@@ -36,7 +36,7 @@ func main() {
 
 	log.Infof("KWS Control Server Starting...")
 
-	contextStruct, err := startup.Initialize("./startup/vm_info.json", "config.yaml")
+	contextStruct, err := startup.Initialize("config.yaml")
 	if err != nil {
 		log.Errorf("Failed to initialize: %v", err)
 		panic(err)

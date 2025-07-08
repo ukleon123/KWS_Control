@@ -2,7 +2,6 @@ package startup
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -16,19 +15,11 @@ import (
 	_ "gopkg.in/yaml.v3"
 )
 
-func Initialize(dataPath, configPath string) (structure.ControlContext, error) {
+func Initialize(configPath string) (structure.ControlContext, error) {
 	log := logrus.New()
 	log.SetReportCaller(true)
 
-	b, err := os.ReadFile(dataPath)
-	if err != nil {
-		return structure.ControlContext{}, err
-	}
-
 	var infra structure.ControlContext
-	if err := json.Unmarshal(b, &infra); err != nil {
-		return structure.ControlContext{}, fmt.Errorf("failed to parse JSON: %v", err)
-	}
 
 	// 모든 Core 정의
 	infra.VMLocation = make(map[structure.UUID]*structure.Core)
