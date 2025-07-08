@@ -7,7 +7,15 @@ type Config struct {
 	GuacBaseURL       string   `yaml:"guacamole_base_url"`
 	Cores             []string `yaml:"cores"`
 	Port              int      `yaml:"port"`
-	DB                string   `yaml:"db"`
+	DB                DBConfig `yaml:"db"`
+}
+
+type DBConfig struct {
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Name     string `yaml:"name"`
 }
 
 // memory: GiB

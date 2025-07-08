@@ -2,6 +2,7 @@ package startup
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/easy-cloud-Knet/KWS_Control/structure"
 	"golang.org/x/sync/errgroup"
 
+	_ "github.com/go-sql-driver/mysql"
 	_ "gopkg.in/yaml.v3"
 )
 
@@ -115,7 +117,56 @@ func Initialize(dataPath, configPath string) (structure.ControlContext, error) {
 		config.GuacBaseURL = guacBaseUrlEnv
 	}
 
+	dbUser := os.Getenv("DB_USER")
+	if dbUser == "" {
+		dbUser = config.DB.User
+		if dbUser == "" {
+			dbUser = "root"
+		}
+	}
+
+	dbPassword := os.Getenv("DB_PASSWORD")
+	if dbPassword == "" {
+		dbPassword = config.DB.Password
+	}
+
+	dbHost := os.Getenv("DB_HOST")
+	if dbHost == "" {
+		dbHost = config.DB.Host
+		if dbHost == "" {
+			dbHost = "localhost"
+		}
+	}
+
+	dbPort := os.Getenv("DB_PORT")
+	if dbPort == "" {
+		if config.DB.Port != 0 {
+			dbPort = strconv.Itoa(config.DB.Port)
+		} else {
+			dbPort = "3306"
+		}
+	}
+
+	dbName := os.Getenv("DB_NAME")
+	if dbName == "" {
+		dbName = config.DB.Name
+		if dbName == "" {
+			dbName = "guacamole_db"
+		}
+	}
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return structure.ControlContext{}, fmt.Errorf("failed to open database connection: %w", err)
+	}
+	if err := db.Ping(); err != nil {
+		return structure.ControlContext{}, fmt.Errorf("failed to ping database: %w", err)
+	}
+
 	infra.Config = config
+	infra.DB = db
 	return infra, nil
 }
 
