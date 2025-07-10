@@ -37,6 +37,23 @@ type Logger struct {
 // 절대경로 말고 파일만 보이도록
 // 이때, 함수명에서 패키지 경로도 지움
 func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	var b strings.Builder
+
+	timestamp := entry.Time.Format("2006-01-02 15:04:05")
+	if f.BaseFormatter != nil {
+		if textFormatter, ok := f.BaseFormatter.(*logrus.TextFormatter); ok && textFormatter.TimestampFormat != "" {
+			timestamp = entry.Time.Format(textFormatter.TimestampFormat)
+		}
+	}
+
+	level := strings.ToUpper(entry.Level.String())
+
+	b.WriteString(timestamp)
+	b.WriteString(" [")
+	b.WriteString(level)
+	b.WriteString("] ")
+	b.WriteString(entry.Message)
+
 	if entry.Caller != nil {
 		file := entry.Caller.File
 
@@ -49,18 +66,18 @@ func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		// 하드코딩 해놓을게요
 		file = strings.Replace(file, "KWS_Control/", "", 1)
 
-		funcName := entry.Caller.Function
-		funcName = strings.Replace(funcName, "github.com/easy-cloud-Knet/KWS_Control/", "", 1)
+		// funcName := entry.Caller.Function
+		// funcName = strings.Replace(funcName, "github.com/easy-cloud-Knet/KWS_Control/", "", 1)
 
-		entry.Caller = &runtime.Frame{
-			PC:       entry.Caller.PC,
-			File:     file,
-			Function: funcName,
-			Line:     entry.Caller.Line,
-		}
+		b.WriteString(" [")
+		b.WriteString(file)
+		b.WriteString(":")
+		b.WriteString(fmt.Sprintf("%d", entry.Caller.Line))
+		b.WriteString("]")
 	}
 
-	return f.BaseFormatter.Format(entry)
+	b.WriteString("\n")
+	return []byte(b.String()), nil
 }
 
 // 로그파일 뱉는 함수
@@ -87,7 +104,7 @@ func createLoggerWithFile(filename string, projectRoot string) *logrus.Logger {
 	formatter := &CustomFormatter{
 		BaseFormatter: &logrus.TextFormatter{
 			FullTimestamp:   true,
-			TimestampFormat: "2006-01-02 15:04:05", // log파일 저장할 때는 년-월-일 시:분:초
+			TimestampFormat: "2006-01-02 15:04:05",
 		},
 		ProjectRoot: projectRoot,
 	}
@@ -120,7 +137,7 @@ func NewLogger() *logrus.Logger {
 	formatter := &CustomFormatter{
 		BaseFormatter: &logrus.TextFormatter{
 			FullTimestamp:   true,
-			TimestampFormat: "15:04:05",
+			TimestampFormat: "2006-01-02 15:04:05",
 		},
 		ProjectRoot: projectRoot,
 	}
@@ -129,7 +146,6 @@ func NewLogger() *logrus.Logger {
 	return logger
 }
 
-// NewEnhancedLogger는 파일 저장 기능이 있는 향상된 logger를 생성합니다
 func NewEnhancedLogger() *Logger {
 	_, currentFile, _, _ := runtime.Caller(0)
 	projectRoot := ""
