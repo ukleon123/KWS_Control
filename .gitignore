@@ -66,3 +66,5 @@ kws
 .gitmessage
 
 .env
+
+logs/
