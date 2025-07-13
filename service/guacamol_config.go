@@ -80,7 +80,6 @@ func GuacamoleConfig(Username string, UUID string, Ip string, PrivateKey string,
 	// 3. 해시 계산: SHA256(salt + password)
 	passwordHash := fmt.Sprintf("%x", hashPasswordWithSalt(userPass, salt))
 	saltHex := fmt.Sprintf("%x", salt)
-
 	tx, err := db.Begin()
 	if err != nil {
 		log.Error("guacamole: failed to start transaction: %v", err, true)
@@ -126,7 +125,7 @@ func GuacamoleConfig(Username string, UUID string, Ip string, PrivateKey string,
 	// 5. User 생성
 	_, err = tx.Exec(`
 		INSERT INTO guacamole_user (entity_id, password_hash, password_salt, password_date)
-		VALUES (?, ?, UNHEX(?), NOW())
+		VALUES (?, UNHEX(?), UNHEX(?), NOW())
 		ON DUPLICATE KEY UPDATE
 		password_hash = VALUES(password_hash),
 		password_salt = VALUES(password_salt),
