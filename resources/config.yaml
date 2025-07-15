@@ -10,13 +10,13 @@ port: 8081
 db:
   user: "root"
   password: "password"
-  host: "localhost"
+  host: "100.101.247.128"
   port: 3306
   name: "db"
 
 guac_db:
   user: "root"
   password: "password"
-  host: "localhost"
+  host: "100.101.247.128"
   port: 3306
   name: "guacamole_db"
