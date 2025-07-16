@@ -10,11 +10,12 @@ import (
 
 	"github.com/easy-cloud-Knet/KWS_Control/request"
 	"github.com/easy-cloud-Knet/KWS_Control/structure"
-	"github.com/easy-cloud-Knet/KWS_Control/util"
 	"golang.org/x/sync/errgroup"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "gopkg.in/yaml.v3"
+
+	"github.com/easy-cloud-Knet/KWS_Control/util"
 )
 
 func InitializeCoreData(configPath string) (structure.ControlContext, error) {
@@ -169,11 +170,18 @@ func InitializeCoreData(configPath string) (structure.ControlContext, error) {
 
 	dsnMain := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUserMain, dbPasswordMain, dbHostMain, dbPortMain, dbNameMain)
 
+	log.DebugInfo("database connection info: %s:%s@tcp(%s:%s)/%s", dbUserMain, dbPasswordMain, dbHostMain, dbPortMain, dbNameMain)
 	mainDB, err := sql.Open("mysql", dsnMain)
+
+	log.DebugInfo("generic database connection opened")
+	log.DebugInfo("generic database stats: %v", mainDB.Stats())
+
 	if err != nil {
+		log.DebugError("failed to open generic database connection: %v", err)
 		return structure.ControlContext{}, fmt.Errorf("failed to open generic database connection: %w", err)
 	}
 	if err := mainDB.Ping(); err != nil {
+		log.DebugError("failed to ping generic database: %v", err)
 		return structure.ControlContext{}, fmt.Errorf("failed to ping generic database: %w", err)
 	}
 
