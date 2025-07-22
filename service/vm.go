@@ -96,11 +96,11 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 
 		return errors.New("selectedCore == nil")
 	}
-	// var privateKeyPEM, publicKeyOpenSSH, err = GenerateSshKey()
-	// if err != nil {
-	// 	log.Error("GenerateSshKey() failed: %v", err, true)
-	// 	return err
-	// }
+	var privateKeyPEM, publicKeyOpenSSH, err = GenerateSshKey()
+	if err != nil {
+		log.Error("GenerateSshKey() failed: %v", err, true)
+		return err
+	}
 
 	// 문제가 생겼을 때 지우는 무언가
 	var guacamoleConfigured = false
@@ -129,17 +129,15 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	}
 
 	fmt.Printf("AssignInternalAddress(): %s", instanceIp)
-	// fmt.Println(publicKeyOpenSSH) // TODO: 코어로 보내줘야함
+	fmt.Println(publicKeyOpenSSH) // TODO: 코어로 보내줘야함
 
-	//userPass := GuacamoleConfig(req.Users[0].Name, string(uuid), instanceIp, privateKeyPEM, contextStruct.GuacDB)
+	userPass := GuacamoleConfig(req.Users[0].Name, string(uuid), instanceIp, privateKeyPEM, contextStruct.GuacDB)
 
-	// if userPass == "" {
-	// 	log.Error("Failed to configure Guacamole", true)
-	// 	return errors.New("failed to configure Guacamole")
-	// }
-	// guacamoleConfigured = true
-
-	userPass := "tmp"
+	if userPass == "" {
+		log.Error("Failed to configure Guacamole", true)
+		return errors.New("failed to configure Guacamole")
+	}
+	guacamoleConfigured = true
 
 	newVM := &structure.VMInfo{
 		UUID:         uuid,
@@ -164,7 +162,7 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 
 	req.NetConf.Ips = []string{instanceIp}
 	req.NetConf.NetType = 0
-	// req.Users[0].SSHAuthorizedKeys = []string{publicKeyOpenSSH}
+	req.Users[0].SSHAuthorizedKeys = []string{publicKeyOpenSSH}
 
 	client := request.NewCoreClient(selectedCore)
 	_, err = client.CreateVM(context.Background(), req)
