@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 
 	"github.com/easy-cloud-Knet/KWS_Control/request"
 	"github.com/easy-cloud-Knet/KWS_Control/request/model"
-	"github.com/easy-cloud-Knet/KWS_Control/structure"
 	"github.com/easy-cloud-Knet/KWS_Control/util"
 
 	vms "github.com/easy-cloud-Knet/KWS_Control/structure"
@@ -24,8 +24,20 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	var req model.CreateVMRequest
 	defer r.Body.Close() // defer << 에러가 발생해도 body가 닫히도록 보장.
 
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "" {
+		log.Warn("No Content-Type header specified, assuming application/json", true)
+	} else if !strings.Contains(contentType, "application/json") {
+		log.Warn("Content-Type is not application/json: %s", contentType, true)
+	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Error("err req body parsing: %v", err, true)
+		log.DebugError("Request Content-Type: %s", contentType)
+
+		if strings.Contains(err.Error(), "invalid character") {
+			return errors.New("invalid JSON format in request body - check for encoding issues or malformed JSON")
+		}
 		return errors.New("err req body parsing: " + err.Error())
 	}
 
@@ -109,7 +121,7 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	var guacamoleConfigured = false
 	var coreResourcesAllocated = false
 	var newSubnetAllocated = false
-	var uuid = structure.UUID(req.UUID.String().(string))
+	var uuid = vms.UUID(req.UUID.String().(string))
 
 	cleanup := func() {
 		if guacamoleConfigured {
@@ -160,7 +172,7 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	}
 	guacamoleConfigured = true
 
-	newVM := &structure.VMInfo{
+	newVM := &vms.VMInfo{
 		UUID:         uuid,
 		GuacPassword: userPass,
 		MacAddr:      cmsResp.MacAddr,

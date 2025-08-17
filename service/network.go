@@ -32,6 +32,12 @@ type CmsRequest struct {
 // fmt.Sprintf("%s/New/Instance", CMS_HOST)
 func NewCmsClient() *CmsClient {
 	CMS_HOST := os.Getenv("CMS_HOST")
+	if CMS_HOST == "" {
+		log := util.GetLogger()
+		log.Error("CMS_HOST Re:Check your env variable", true)
+		CMS_HOST = "localhost:8080"
+		log.Warn("CMS_HOST set: %s", CMS_HOST, true)
+	}
 	return &CmsClient{
 		baseURL: CMS_HOST,
 		client: &http.Client{
@@ -56,6 +62,14 @@ func (c *CmsClient) CmsRequest(Subnet string) (*CmsResponse, error) {
 		log.Error("CMS : failed to NewRequest: %w", err)
 		return nil, err
 	}
+
+	// Content-Type 헤더 설정
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	log.DebugInfo("Making request to: %s", req_url)
+	log.DebugInfo("Request body: %s", string(jsonBody))
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		log.Error("CMS : failed to create request: %w", err)
@@ -66,7 +80,7 @@ func (c *CmsClient) CmsRequest(Subnet string) (*CmsResponse, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		log.Error("CMS : CMS returned status: %s", resp.Status)
-		return nil, err
+		return nil, fmt.Errorf("CMS server returned non-OK status: %s", resp.Status)
 	}
 	var addrResp CmsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&addrResp); err != nil {
