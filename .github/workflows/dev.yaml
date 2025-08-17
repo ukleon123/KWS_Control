@@ -42,5 +42,6 @@ jobs:
           -e GUAC_DB_HOST="${{ secrets.GUAC_DB_HOST }}" \
           -e GUAC_DB_NAME="${{ secrets.GUAC_DB_NAME }}" \
           -e REDIS_HOST="${{ secrets.REDIS_HOST }}" \
+          -e CMS_HOST="${{ secrets.CMS_HOST }}" \
           $IMAGE
         docker system prune -af
