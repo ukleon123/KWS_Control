@@ -59,7 +59,7 @@ func (c *GuacamoleClient) Authenticate(ctx context.Context, username, password s
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to send auth request: %w", err)
+		return fmt.Errorf("failed to send auth request to %s: %w", c.baseURL, err)
 	}
 	//goland:noinspection GoUnhandledErrorResult
 	defer resp.Body.Close()
