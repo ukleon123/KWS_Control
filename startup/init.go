@@ -139,6 +139,9 @@ func InitializeCoreData(configPath string) (structure.ControlContext, error) {
 	if guacBaseURL != "" {
 		config.GuacBaseURL = guacBaseURL
 	}
+	if config.GuacBaseURL == "" {
+		config.GuacBaseURL = "http://100.101.247.128:8080/guacamole"
+	}
 
 	infra.Config = config
 	infra.GuacDB = db
