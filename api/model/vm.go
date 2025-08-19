@@ -22,11 +22,15 @@ type ApiVmConnectRequest struct {
 // 요건 core쪽이랑 이야기 맞춰야--
 // request/model/vm.go 와 동일하게 유지
 const (
-	VMStatusBooting    = "booting"
-	VMStatusRunning    = "running"
-	VMStatusStopped    = "stopped"
-	VMStatusTerminated = "terminated"
-	VMStatusUnknown    = "unknown"
+	VMStatusPrepareBegin     = "prepare begin"
+	VMStatusStartBegin       = "start begin"
+	VMStatusStarted          = "started begin"
+	VMStatusStopped          = "stopped end"
+	VMStatusReleaseShutdown  = "release end shutdown"
+	VMStatusReleaseDestroyed = "release end destroyed"
+	VMStatusMigrate          = "migrate begin"
+	VMStatusRestore          = "restort begin"
+	VMStatusUnknown          = "unknown"
 )
 
 type Redis struct {
@@ -40,7 +44,8 @@ func ValidateAndNormalizeStatus(status string) string {
 	}
 
 	switch status {
-	case VMStatusBooting, VMStatusRunning, VMStatusStopped, VMStatusTerminated, VMStatusUnknown:
+	case VMStatusPrepareBegin, VMStatusStartBegin, VMStatusStarted, VMStatusStopped,
+		VMStatusReleaseShutdown, VMStatusReleaseDestroyed, VMStatusMigrate, VMStatusRestore, VMStatusUnknown:
 		return status
 	default:
 		return VMStatusUnknown
