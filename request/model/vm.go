@@ -122,11 +122,14 @@ type Redis struct {
 // api/model/vm.go와 동일하게--
 // 너무 나눠진 거 같은데 어케 해결할지는 나중에 고민해보죠
 const (
-	VMStatusBooting    = "booting"
-	VMStatusRunning    = "running"
-	VMStatusStopped    = "stopped"
-	VMStatusTerminated = "terminated"
-	VMStatusUnknown    = "unknown"
+	VMStatusPrepareBegin = "prepare begin"
+	VMStatusStartBegin   = "start begin"
+	VMStatusStarted      = "started begin"
+	VMStatusStopped      = "stopped end"
+	VMStatusRelease      = "release end"
+	VMStatusMigrate      = "migrate begin"
+	VMStatusRestore      = "restort begin"
+	VMStatusUnknown      = "unknown"
 )
 
 // type instaceStatus int
