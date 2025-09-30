@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/easy-cloud-Knet/KWS_Control/request"
 	"github.com/easy-cloud-Knet/KWS_Control/request/model"
@@ -215,8 +216,10 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 		Memory: req.HardwareInfo.Memory,
 		Disk:   req.HardwareInfo.Disk,
 		IP:     cmsResp.IP,
+		Status: model.VMStatusPrepareBegin,
+		Time:   time.Now().Unix(),
 	}
-	
+
 	if err := StoreVMInfoToRedis(context.Background(), rdb, vmRedisInfo); err != nil {
 		log.Warn("failed to store VM info to redis (vm creation succeeded but..): %v", err, true)
 		// redis에 저장 실패를 vm생성 실패로 처리하지는 않음
@@ -280,7 +283,7 @@ func DeleteVM(uuid vms.UUID, contextStruct *vms.ControlContext, rdb *redis.Clien
 	return nil
 }
 
-func ShutdownVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
+func ShutdownVM(uuid vms.UUID, contextStruct *vms.ControlContext, rdb *redis.Client) error {
 	core := contextStruct.FindCoreByVmUUID(uuid)
 	if core == nil {
 		return fmt.Errorf("VM with UUID %s not found", string(uuid))
@@ -305,6 +308,11 @@ func ShutdownVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
 
 	if foundIndex != -1 {
 		contextStruct.AliveVM = slices.Delete(contextStruct.AliveVM, foundIndex, foundIndex+1)
+	}
+
+	if err := UpdateVMStatusInRedis(context.Background(), rdb, uuid, model.VMStatusStopped, time.Now().Unix()); err != nil {
+		log := util.GetLogger()
+		log.Warn("failed to update vm status in redis %v", err, true)
 	}
 
 	return nil

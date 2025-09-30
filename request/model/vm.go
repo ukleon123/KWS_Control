@@ -126,6 +126,8 @@ type VMRedisInfo struct {
 	Memory uint32         `json:"memory"` // MiB
 	Disk   uint32         `json:"disk"`   // MiB
 	IP     string         `json:"ip"`
+	Status string         `json:"status"`
+	Time   int64          `json:"time"`
 }
 
 // api/model/vm.go와 동일하게--
