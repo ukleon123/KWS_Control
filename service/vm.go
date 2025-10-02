@@ -43,6 +43,10 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 		return errors.New("err req body parsing: " + err.Error())
 	}
 
+	if req.HardwareInfo.Memory == 0 || req.HardwareInfo.CPU == 0 || req.HardwareInfo.Disk == 0 {
+		return errors.New("invalid JSON format in request body - check for Memory or CPU or Disk")
+	}
+
 	log.Info("func CreateVM() memory=%d GiB, cpu=%d, disk=%d GiB", req.HardwareInfo.Memory, req.HardwareInfo.CPU, req.HardwareInfo.Disk, true)
 
 	// err = validateCreateVMRequest(req)
@@ -70,6 +74,10 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 		memoryOk := core.FreeMemory >= req.HardwareInfo.Memory
 		cpuOk := core.FreeCPU >= req.HardwareInfo.CPU
 		diskOk := core.FreeDisk >= req.HardwareInfo.Disk
+
+		if req.HardwareInfo.Disk == 0 {
+			log.DebugError("test")
+		}
 
 		if !memoryOk {
 			log.DebugWarn("%s !memoryOk: req=%d, available=%d", core.IP, req.HardwareInfo.Memory, core.FreeMemory)
