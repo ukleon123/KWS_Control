@@ -56,7 +56,7 @@ func (c *handlerContext) shutdownVm(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	err := service.ShutdownVM(req.UUID, c.context)
+	err := service.ShutdownVM(req.UUID, c.context, c.rdb)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
