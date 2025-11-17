@@ -210,7 +210,6 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	req.NetConf.NetType = 0
 	req.Users[0].SSHAuthorizedKeys = []string{publicKeyOpenSSH}
 
-
 	vmRedisInfo := model.VMRedisInfo{
 		UUID:   uuid,
 		CPU:    req.HardwareInfo.CPU,
@@ -221,7 +220,6 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 		Time:   time.Now().Unix(),
 	}
 
-	
 	// HTTP 전송 전에 저장을 완료하여 Core에서 업데이트할 수 있도록 순서 보장
 	if err := StoreVMInfoToRedis(context.Background(), rdb, vmRedisInfo); err != nil {
 		log.Warn("failed to store VM info to redis: %v", err, true)
@@ -236,7 +234,6 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 		cleanup() // 직접 지우지 말고 요 함수 하나로--
 		return err
 	}
-
 
 	err = contextStruct.AddInstance(newVM, selectedCoreIndex)
 	if err != nil {
@@ -285,6 +282,9 @@ func DeleteVM(uuid vms.UUID, contextStruct *vms.ControlContext, rdb *redis.Clien
 	if err != nil {
 		log.Error("error deleting instance %s from ControlContext: %v", uuid, err)
 		return err
+	}
+	if cleanupErr := CleanupGuacamoleConfig(string(uuid), contextStruct.GuacDB); cleanupErr != nil {
+		log.Error("Failed to cleanup Guacamole config during rollback: %v", cleanupErr)
 	}
 
 	if err := RemoveVMInfoFromRedis(context.Background(), rdb, uuid); err != nil {
