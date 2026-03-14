@@ -4,6 +4,8 @@ import (
 	"net/http"
 )
 
+// 현재 미사용중
+// 얜 뭐임? 어따쓰는거지?
 func CheckMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
 	if r.Method != expectedMethod {
 		log := GetLogger()

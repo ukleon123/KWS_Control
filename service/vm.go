@@ -62,6 +62,7 @@ func CreateVM(w http.ResponseWriter, r *http.Request, contextStruct *vms.Control
 	aliveCount := 0
 
 	for i := range contextStruct.Cores {
+
 		core := &contextStruct.Cores[i]
 		log.DebugInfo("core %s checking: FreeMemory=%d, FreeCPU=%d, FreeDisk=%d, IsAlive=%t", core.IP, core.FreeMemory, core.FreeCPU, core.FreeDisk, core.IsAlive)
 
