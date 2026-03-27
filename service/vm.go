@@ -12,6 +12,8 @@ import (
 
 	"github.com/easy-cloud-Knet/KWS_Control/client"
 	"github.com/easy-cloud-Knet/KWS_Control/client/model"
+	"github.com/easy-cloud-Knet/KWS_Control/pkg/guacamole"
+	internalssh "github.com/easy-cloud-Knet/KWS_Control/pkg/ssh"
 	"github.com/easy-cloud-Knet/KWS_Control/util"
 	"github.com/redis/go-redis/v9"
 
