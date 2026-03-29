@@ -6,7 +6,6 @@ toolchain go1.23.4
 
 require (
 	github.com/go-sql-driver/mysql v1.9.2
-	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.11.0
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.39.0
