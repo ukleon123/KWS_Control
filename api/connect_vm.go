@@ -18,18 +18,19 @@ type ApiVmConnectResponse struct {
 
 func (c *handlerContext) vmConnect(w http.ResponseWriter, r *http.Request) {
 	log := util.GetLogger()
+	defer r.Body.Close()
 
 	uuidStr := r.URL.Query().Get("uuid")
 	if uuidStr == "" {
 		util.RespondError(w, http.StatusBadRequest, "Missing 'uuid' query parameter")
-		log.Error("Missing 'uuid' query parameter", nil, true)
+		log.Error("vmConnect: missing 'uuid' query parameter", nil, true)
 		return
 	}
 
 	uuid := structure.UUID(uuidStr)
 	authToken, err := service.GetGuacamoleToken(uuid, c.context)
 	if err != nil {
-		log.Error("Failed to get Guacamole token: %v", err, true)
+		log.Error("vmConnect: failed to get Guacamole token: %v", err, true)
 		util.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

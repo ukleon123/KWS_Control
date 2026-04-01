@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -92,12 +91,12 @@ func CreateVM(req model.CreateVMRequest, contextStruct *vms.ControlContext, rdb 
 			log.DebugError("no alive cores available")
 		}
 
-		return errors.New("selectedCore == nil")
+		return fmt.Errorf("CreateVM: no suitable core found")
 	}
 	var privateKeyPEM, publicKeyOpenSSH, err = internalssh.GenerateSSHKey()
 	if err != nil {
 		log.Error("GenerateSshKey() failed: %v", err, true)
-		return err
+		return fmt.Errorf("CreateVM: failed to generate SSH key: %w", err)
 	}
 
 	// add : back -> vm uuid    ->  cms   다른 api
@@ -137,8 +136,8 @@ func CreateVM(req model.CreateVMRequest, contextStruct *vms.ControlContext, rdb 
 		newSubnetAllocated = true
 	}
 	if err != nil {
-		log.Error("Failed to configure cms", true)
-		return errors.New("failed to configure cms")
+		log.Error("CreateVM: failed to configure cms: %v", err, true)
+		return fmt.Errorf("CreateVM: failed to configure cms: %w", err)
 	}
 
 	fmt.Printf("%s\n", cmsResp.IP)
@@ -148,8 +147,8 @@ func CreateVM(req model.CreateVMRequest, contextStruct *vms.ControlContext, rdb 
 	userPass := guacamole.Configure(req.Users[0].Name, string(req.UUID), cmsResp.IP, privateKeyPEM, contextStruct.GuacDB)
 
 	if userPass == "" {
-		log.Error("Failed to configure Guacamole", true)
-		return errors.New("failed to configure Guacamole")
+		log.Error("CreateVM: failed to configure Guacamole", true)
+		return fmt.Errorf("CreateVM: failed to configure Guacamole")
 	}
 	guacamoleConfigured = true
 
@@ -203,7 +202,7 @@ func CreateVM(req model.CreateVMRequest, contextStruct *vms.ControlContext, rdb 
 	if err != nil {
 		log.Error("Error creating VM on core %s: %v", selectedCore.IP, err, true)
 		cleanup() // 직접 지우지 말고 요 함수 하나로--
-		return err
+		return fmt.Errorf("CreateVM: failed to create VM on core %s: %w", selectedCore.IP, err)
 	}
 
 	err = contextStruct.AddInstance(newVM, selectedCoreIndex)
@@ -245,14 +244,14 @@ func DeleteVM(uuid vms.UUID, contextStruct *vms.ControlContext, rdb *redis.Clien
 		Type: model.HardDelete,
 	})
 	if err != nil {
-		log.Error("error deleting VM %s on core %s: %w", uuid, core.IP, err)
-		return err
+		log.Error("error deleting VM %s on core %s: %v", uuid, core.IP, err)
+		return fmt.Errorf("DeleteVM: failed to delete VM %s on core %s: %w", uuid, core.IP, err)
 	}
 
 	err = contextStruct.DeleteInstance(uuid)
 	if err != nil {
 		log.Error("error deleting instance %s from ControlContext: %v", uuid, err)
-		return err
+		return fmt.Errorf("DeleteVM: failed to delete instance %s: %w", uuid, err)
 	}
 	if cleanupErr := guacamole.Cleanup(string(uuid), contextStruct.GuacDB); cleanupErr != nil {
 		log.Error("Failed to cleanup Guacamole config during rollback: %v", cleanupErr)
@@ -279,7 +278,7 @@ func StartVM(uuid vms.UUID, contextStruct *vms.ControlContext) error {
 		UUID: uuid,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("StartVM: failed to start VM %s: %w", uuid, err)
 	}
 
 	log.Info("VM %s started on core %s", uuid, core.IP, true)
@@ -298,7 +297,7 @@ func ShutdownVM(uuid vms.UUID, contextStruct *vms.ControlContext, rdb *redis.Cli
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("ShutdownVM: failed to shutdown VM %s: %w", uuid, err)
 	}
 
 	foundIndex := -1
@@ -326,18 +325,16 @@ func GetVMCpuInfo(uuid vms.UUID, contextStruct *vms.ControlContext) (model.CoreM
 
 	core := contextStruct.FindCoreByVmUUID(uuid)
 	if core == nil {
-		msg := fmt.Sprintf("VM with UUID %s not found", string(uuid))
-		log.Error(msg, true)
-		return model.CoreMachineCpuInfoResponse{}, errors.New(msg)
+		log.Error("GetVMCpuInfo: VM with UUID %s not found", string(uuid), true)
+		return model.CoreMachineCpuInfoResponse{}, fmt.Errorf("GetVMCpuInfo: VM with UUID %s not found", string(uuid))
 	}
 
 	coreClient := client.NewCoreClient(core)
 
 	cpuInfo, err := coreClient.GetVMCpuInfo(context.Background(), uuid)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting CPU info for VM %s on core %s: %v", uuid, core.IP, err)
-		log.Error(msg, true)
-		return model.CoreMachineCpuInfoResponse{}, errors.New(msg)
+		log.Error("GetVMCpuInfo: error getting CPU info for VM %s on core %s: %v", uuid, core.IP, err, true)
+		return model.CoreMachineCpuInfoResponse{}, fmt.Errorf("GetVMCpuInfo: error getting CPU info for VM %s on core %s: %w", uuid, core.IP, err)
 	}
 
 	log.DebugInfo("Retrieved CPU status for VM %s on core %s", uuid, core.IP)
@@ -349,18 +346,16 @@ func GetVMMemoryInfo(uuid vms.UUID, contextStruct *vms.ControlContext) (model.Co
 
 	core := contextStruct.FindCoreByVmUUID(uuid)
 	if core == nil {
-		msg := fmt.Sprintf("VM with UUID %s not found", string(uuid))
-		log.Error(msg, true)
-		return model.CoreMachineMemoryInfoResponse{}, errors.New(msg)
+		log.Error("GetVMMemoryInfo: VM with UUID %s not found", string(uuid), true)
+		return model.CoreMachineMemoryInfoResponse{}, fmt.Errorf("GetVMMemoryInfo: VM with UUID %s not found", string(uuid))
 	}
 
 	coreClient := client.NewCoreClient(core)
 
 	memoryInfo, err := coreClient.GetVMMemoryInfo(context.Background(), uuid)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting memory info for VM %s on core %s: %v", uuid, core.IP, err)
-		log.Error(msg, true)
-		return model.CoreMachineMemoryInfoResponse{}, errors.New(msg)
+		log.Error("GetVMMemoryInfo: error getting memory info for VM %s on core %s: %v", uuid, core.IP, err, true)
+		return model.CoreMachineMemoryInfoResponse{}, fmt.Errorf("GetVMMemoryInfo: error getting memory info for VM %s on core %s: %w", uuid, core.IP, err)
 	}
 
 	log.DebugInfo("Retrieved Memory status for VM %s on core %s", uuid, core.IP)
@@ -372,18 +367,16 @@ func GetVMDiskInfo(uuid vms.UUID, contextStruct *vms.ControlContext) (model.Core
 
 	core := contextStruct.FindCoreByVmUUID(uuid)
 	if core == nil {
-		msg := fmt.Sprintf("VM with UUID %s not found", string(uuid))
-		log.Error(msg, true)
-		return model.CoreMachineDiskInfoResponse{}, errors.New(msg)
+		log.Error("GetVMDiskInfo: VM with UUID %s not found", string(uuid), true)
+		return model.CoreMachineDiskInfoResponse{}, fmt.Errorf("GetVMDiskInfo: VM with UUID %s not found", string(uuid))
 	}
 
 	coreClient := client.NewCoreClient(core)
 
 	diskInfo, err := coreClient.GetVMDiskInfo(context.Background(), uuid)
 	if err != nil {
-		msg := fmt.Sprintf("Error getting disk info for VM %s on core %s: %v", uuid, core.IP, err)
-		log.Error(msg, true)
-		return model.CoreMachineDiskInfoResponse{}, errors.New(msg)
+		log.Error("GetVMDiskInfo: error getting disk info for VM %s on core %s: %v", uuid, core.IP, err, true)
+		return model.CoreMachineDiskInfoResponse{}, fmt.Errorf("GetVMDiskInfo: error getting disk info for VM %s on core %s: %w", uuid, core.IP, err)
 	}
 
 	log.DebugInfo("Retrieved Disk status for VM %s on core %s", uuid, core.IP)

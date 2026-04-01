@@ -52,14 +52,14 @@ func (c *CmsClient) CmsRequest(Subnet string) (*CmsResponse, error) {
 	reqBody := CmsRequest{Subnet: Subnet}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
-		log.Error("CMS : failed to marshal JSON: %w", err)
-		return nil, err
+		log.Error("CMS : failed to marshal JSON: %v", err)
+		return nil, fmt.Errorf("CmsRequest: failed to marshal JSON: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", req_url, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		log.Error("CMS : failed to NewRequest: %w", err)
-		return nil, err
+		log.Error("CMS : failed to NewRequest: %v", err)
+		return nil, fmt.Errorf("CmsRequest: failed to create HTTP request: %w", err)
 	}
 
 	// Content-Type 헤더 설정
@@ -71,8 +71,8 @@ func (c *CmsClient) CmsRequest(Subnet string) (*CmsResponse, error) {
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		log.Error("CMS : failed to create request: %w", err)
-		return nil, err
+		log.Error("CMS : failed to send request: %v", err)
+		return nil, fmt.Errorf("CmsRequest: failed to send request: %w", err)
 	}
 
 	defer resp.Body.Close()
@@ -83,8 +83,8 @@ func (c *CmsClient) CmsRequest(Subnet string) (*CmsResponse, error) {
 	}
 	var addrResp CmsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&addrResp); err != nil {
-		log.Error("CMS : failed to decode CMS response: %w", err)
-		return nil, err
+		log.Error("CMS : failed to decode CMS response: %v", err)
+		return nil, fmt.Errorf("CmsRequest: failed to decode response: %w", err)
 	}
 
 	return &addrResp, nil
@@ -95,18 +95,18 @@ func (c *CmsClient) AddCmsSubnet(ctx *vms.ControlContext, uuid vms.UUID) (*CmsRe
 
 	ip, err := GetVMIPByUUID(ctx, uuid)
 	if err != nil {
-		log.Error("AddCmsSubnet : GetVMIPByUUID: %w", err)
-		return nil, err
+		log.Error("AddCmsSubnet : GetVMIPByUUID: %v", err)
+		return nil, fmt.Errorf("AddCmsSubnet: failed to get VM IP: %w", err)
 	}
 	subnet, err := pkgnetwork.GetSubnetFromIP(ip)
 	if err != nil {
 		log.Error("AddCmsSubnet : GetSubnetFromIP: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("AddCmsSubnet: failed to get subnet: %w", err)
 	}
 	temp, err := c.CmsRequest(subnet)
 	if err != nil {
 		log.Error("AddCmsSubnet : c.CmsRequest(subnet): %v", err)
-		return nil, err
+		return nil, fmt.Errorf("AddCmsSubnet: CmsRequest failed: %w", err)
 	}
 
 	return temp, nil
@@ -122,13 +122,13 @@ func (c *CmsClient) NewCmsSubnet(ctx *vms.ControlContext) (*CmsResponse, error) 
 
 	temp, err := c.CmsRequest(next_last_subnet)
 	if err != nil {
-		log.Error("AddCmsSubnet : c.CmsRequest(subnet): %v", err)
-		return nil, err
+		log.Error("NewCmsSubnet : c.CmsRequest(subnet): %v", err)
+		return nil, fmt.Errorf("NewCmsSubnet: CmsRequest failed: %w", err)
 	}
 	_, err = ctx.DB.Exec("UPDATE subnet SET last_subnet = ? WHERE id = 1", next_last_subnet)
 	if err != nil {
 		log.Error("Failed to update last_subnet in database: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("NewCmsSubnet: failed to update last_subnet in DB: %w", err)
 	}
 	ctx.Last_subnet = next_last_subnet
 	return temp, nil
