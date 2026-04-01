@@ -45,6 +45,5 @@ func (c *handlerContext) createVm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	_, _ = w.Write([]byte("VM created successfully"))
+	util.RespondJSON(w, http.StatusCreated, map[string]string{"message": "VM created successfully"})
 }
