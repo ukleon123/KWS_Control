@@ -163,7 +163,7 @@ assert_status "DELETE /vm/start should be 405" "405" "$HTTP_CODE"
 section "Section 2: Invalid JSON Body"
 
 http POST "/vm" '{invalid-json}'
-assert_status "POST /vm with invalid JSON should be 405" "405" "$HTTP_CODE"
+assert_status "POST /vm with invalid JSON should be 400" "400" "$HTTP_CODE"
 
 http DELETE "/vm" 'not-json'
 assert_status "DELETE /vm with invalid JSON should be 400" "400" "$HTTP_CODE"
